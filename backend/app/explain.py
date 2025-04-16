@@ -1,3 +1,6 @@
+import yfinance as yf
+import pandas as pd
+
 def explain_signal(df):
     latest = df.iloc[-1]
     explanation_parts = []
@@ -40,3 +43,11 @@ def explain_signal(df):
         summary = "Overall, the signals are mixed."
 
     return summary + " " + " ".join(explanation_parts)
+
+# ✅ New function for frontend charting
+def get_stock_history(ticker):
+    df = yf.download(ticker, period="6mo", interval="1d")
+    df = df[['Close']].dropna()
+    df.reset_index(inplace=True)
+    df['Date'] = df['Date'].dt.strftime('%Y-%m-%d')
+    return {"ticker": ticker, "history": df.to_dict(orient='records')}

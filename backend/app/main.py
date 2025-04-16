@@ -1,13 +1,14 @@
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware  # ✅ Import CORS middleware
+from fastapi import FastAPI, Query
+from fastapi.middleware.cors import CORSMiddleware
 from app.predict import get_prediction
+from app.history import get_price_history
 
 app = FastAPI()
 
-# ✅ Add CORS middleware configuration
+# Enable CORS for frontend development
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],  # Frontend origin
+    allow_origins=["http://localhost:5173"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -15,5 +16,10 @@ app.add_middleware(
 
 @app.get("/predict/{ticker}")
 def predict(ticker: str):
-    result = get_prediction(ticker)
-    return result
+    return get_prediction(ticker)
+
+@app.get("/history/{ticker}")
+def history(ticker: str, range: str = Query("1mo", enum=["1mo", "3mo", "6mo", "ytd", "1y"])):
+    return get_price_history(ticker, range)
+
+
