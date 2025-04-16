@@ -86,25 +86,53 @@ function App() {
   }, [range]);
 
   useEffect(() => {
-    if (showCandles && chartContainerRef.current && priceData.length > 0) {
-      chartContainerRef.current.innerHTML = "";
-      const chart = createChart(chartContainerRef.current, {
-        layout: {
-          background: { color: darkMode ? "#121212" : "#ffffff" },
-          textColor: darkMode ? "#ffffff" : "#000000",
-        },
-        grid: {
-          vertLines: { color: darkMode ? "#444" : "#eee" },
-          horzLines: { color: darkMode ? "#444" : "#eee" },
-        },
-        width: chartContainerRef.current.clientWidth,
-        height: 250,
-      });
-      const candleSeries = chart.addCandlestickSeries();
-      candleSeries.setData(formatForCandles());
-      chartInstanceRef.current = chart;
+    if (!showCandles || !chartContainerRef.current || priceData.length === 0) return;
+  
+    chartContainerRef.current.innerHTML = "";
+  
+    const chart = createChart(chartContainerRef.current, {
+      layout: {
+        background: { color: darkMode ? "#121212" : "#ffffff" },
+        textColor: darkMode ? "#ffffff" : "#000000",
+      },
+      grid: {
+        vertLines: { color: darkMode ? "#444" : "#eee" },
+        horzLines: { color: darkMode ? "#444" : "#eee" },
+      },
+      width: chartContainerRef.current.clientWidth,
+      height: 250,
+    });
+  
+    const formatted = formatForCandles();
+    if (formatted.length === 0) {
+      console.warn("No valid candlestick data.");
+      return;
     }
+  
+    const candleSeries = chart.addCandlestickSeries();
+    candleSeries.setData(formatted);
+    chart.timeScale().fitContent();
+  
+    chartInstanceRef.current = chart;
+    
+        const smaData = priceData
+      .filter(d => d.SMA20)
+      .map(d => ({
+        time: Math.floor(new Date(d.Date).getTime() / 1000),
+        value: d.SMA20,
+      }));
+
+    const smaSeries = chart.addLineSeries({
+      color: '#eab308', // golden yellow
+      lineWidth: 2,
+    });
+    smaSeries.setData(smaData);
+
+    return () => {
+      chart.remove();
+    };
   }, [showCandles, priceData, darkMode]);
+  
 
   const getSignalTextColor = (signal) => {
     if (!signal) return "text-gray-500";
@@ -131,20 +159,29 @@ function App() {
   ];
 
   const formatForCandles = () => {
-    return priceData.map(d => ({
-      time: d.Date,
-      open: d.Open,
-      high: d.High,
-      low: d.Low,
-      close: d.Close
-    }));
+    return priceData.map(d => {
+      const timestamp = Math.floor(new Date(d.Date).getTime() / 1000);
+      return {
+        time: timestamp,
+        open: parseFloat(d.Open),
+        high: parseFloat(d.High),
+        low: parseFloat(d.Low),
+        close: parseFloat(d.Close),
+      };
+    }).filter(d =>
+      !isNaN(d.open) &&
+      !isNaN(d.high) &&
+      !isNaN(d.low) &&
+      !isNaN(d.close)
+    );
   };
-
+  
 
   return (
     <div className={`${darkMode ? "bg-[#121212] text-white" : "bg-[#f5f5f5] text-gray-900"} min-h-screen font-sans transition-colors duration-500 ease-in-out`}>
+      {/* Header and toggle */}
       <header className={`border-b px-8 py-4 flex justify-between items-center shadow-sm transition-colors duration-500 ease-in-out ${darkMode ? "bg-[#1e1e1e]" : "bg-white"}`}>
-        <h1 className="text-2xl font-semibold tracking-tight transition-colors duration-300">SignalSense AI</h1>
+        <h1 className="text-2xl font-semibold tracking-tight transition-colors duration-200 ease-in-out">SignalSense AI</h1>
         <button
           onClick={() => setDarkMode(!darkMode)}
           className="px-4 py-2 rounded shadow text-sm font-medium transition bg-gray-700 text-white hover:bg-gray-600 dark:bg-gray-300 dark:text-gray-900 dark:hover:bg-gray-200"
@@ -153,7 +190,9 @@ function App() {
         </button>
       </header>
 
+      {/* Main */}
       <main className="p-8 flex flex-col items-center transition-colors duration-500 ease-in-out">
+        {/* Input + Button */}
         <div className="flex gap-3 mb-6">
           <input
             className={`px-4 py-2 border rounded-lg shadow-sm focus:outline-none focus:ring-2 w-64 placeholder-gray-400 text-sm transition ${darkMode ? "bg-[#2a2a2a] text-white border-gray-600 focus:ring-gray-500" : "bg-white text-gray-900 border-gray-300 focus:ring-gray-300"}`}
@@ -172,6 +211,7 @@ function App() {
 
         {loading && <Spinner />}
 
+        {/* Result Box */}
         {result && (
           <div className={`rounded-xl shadow-lg p-6 w-full max-w-xl animate-fadeIn mb-10 transition-colors duration-500 ease-in-out ${darkMode ? 'bg-[#1f1f1f]' : 'bg-white'}`}>
             {result.error ? (
@@ -179,7 +219,7 @@ function App() {
             ) : (
               <>
                 <div className="flex items-baseline justify-between mb-2">
-                  <h2 className="text-2xl font-bold">{result.ticker}</h2>
+                  <h2 className="text-2xl font-bold transition-colors duration-200 ease-in-out">{result.ticker}</h2>
                   <p className={`text-lg font-medium ${getSignalTextColor(result.signal)}`}>{result.signal}</p>
                 </div>
                 <div className="mb-4">
@@ -195,6 +235,35 @@ function App() {
           </div>
         )}
 
+        {/* History */}
+        {history.length > 0 && (
+          <div className="mt-4 w-full max-w-xl">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300">Prediction History</h3>
+              <button
+                onClick={() => setHistory([])}
+                className="text-sm text-gray-500 hover:text-gray-800 dark:hover:text-white transition"
+              >
+                Clear History
+              </button>
+            </div>
+            <ul className="space-y-3">
+              {history.map((item, idx) => (
+                <li
+                  key={idx}
+                  className={`p-4 rounded-lg shadow flex justify-between items-center transition-colors duration-500 ease-in-out ${darkMode ? 'bg-[#1e1e1e] text-white' : 'bg-white text-gray-900'}`}
+                >
+                  <span className="font-semibold">{item.ticker}</span>
+                  <span className={`text-sm font-medium ${getSignalTextColor(item.signal)}`}>
+                    {item.signal} ({item.confidence}%)
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {/* Chart */}
         {priceData.length > 0 && (
           <div className="mb-12 w-full max-w-xl">
             <div className="flex justify-between items-center mb-4">
@@ -221,7 +290,7 @@ function App() {
             </div>
 
             {showCandles ? (
-              <div ref={chartContainerRef} className="w-full" style={{ height: "250px" }} />
+              <div ref={chartContainerRef} className="w-full" style={{ height: "250px", minHeight: "250px" }} />
             ) : (
               <ResponsiveContainer width="100%" height={250}>
                 <LineChart data={priceData}>
@@ -241,11 +310,3 @@ function App() {
 }
 
 export default App;
-
-
-
-
-
-
-
-
