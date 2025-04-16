@@ -1,60 +1,94 @@
 import yfinance as yf
 import pandas as pd
 from fastapi.responses import JSONResponse
+import traceback
+
+# Supported yfinance period strings:
+VALID_PERIODS = {"1d", "5d", "1mo", "3mo", "6mo", "ytd", "1y", "2y", "5y", "10y", "max"}
 
 def get_price_history(ticker: str, range: str = "1mo"):
+    # 1) Validate the range param
+    if range not in VALID_PERIODS:
+        return JSONResponse(
+            status_code=400,
+            content={
+                "error": f"Invalid range '{range}'. Must be one of {', '.join(sorted(VALID_PERIODS))}"
+            }
+        )
+
     try:
-        df = yf.download(ticker, period=range, interval="1d", auto_adjust=False)
+        # 2) Fetch data
+        df = yf.download(
+            tickers=ticker,
+            period=range,
+            interval="1d",
+            auto_adjust=False,
+            progress=False
+        )
 
+        # 3) Handle no-data
         if df.empty:
-            return JSONResponse(status_code=404, content={"error": f"No data found for {ticker}"})
+            return JSONResponse(
+                status_code=404,
+                content={"error": f"No data found for {ticker} in period '{range}'"}
+            )
 
+                # 4) Normalize columns (flatten potential multi-index and standardize names)
         df = df.reset_index()
+        df.columns = [
+            (col if isinstance(col, str) else col[0]).lower().replace(" ", "_")
+            for col in df.columns
+        ]
 
-        # Flatten MultiIndex columns if they exist
-        if isinstance(df.columns, pd.MultiIndex):
-            df.columns = ['_'.join(filter(None, col)).strip() for col in df.columns.values]
+        # 5) Ensure required fields
+        required = ["date", "open", "high", "low", "close"]
+        missing = [col for col in required if col not in df.columns]
+        if missing:
+            return JSONResponse(
+                status_code=500,
+                content={"error": f"Missing required columns: {', '.join(missing)}"}
+            )
 
-        # Now look for the expected column names
-        expected_cols = ["Date", f"Open_{ticker.upper()}", f"High_{ticker.upper()}",
-                         f"Low_{ticker.upper()}", f"Close_{ticker.upper()}"]
+        # 6) Format and clean data
+        df["date"] = pd.to_datetime(df["date"]).dt.strftime("%Y-%m-%d")
+        df = df.dropna(subset=["open", "high", "low", "close"]).copy()
 
-        # Confirm all required columns exist
-        missing_cols = [col for col in expected_cols if col not in df.columns]
-        if missing_cols:
-            return JSONResponse(status_code=500, content={"error": f"Missing columns in DataFrame: {df.columns.tolist()}"})
+        # 7) Compute moving averages
+        df["sma20"] = df["close"].rolling(window=20).mean().round(2)
+        df["ema9"] = df["close"].ewm(span=9, adjust=False).mean().round(2)
+        df["ema20"] = df["close"].ewm(span=20, adjust=False).mean().round(2)
+        df["ema50"] = df["close"].ewm(span=50, adjust=False).mean().round(2)
+        df["ema100"] = df["close"].ewm(span=100, adjust=False).mean().round(2)
+        df["ema200"] = df["close"].ewm(span=200, adjust=False).mean().round(2)
 
-        # Select and rename to standard format
-        df = df[["Date"] + expected_cols[1:]]
-        df.columns = ["Date", "Open", "High", "Low", "Close"]
+        # 8) Compute RSI (14-period)
+        delta = df["close"].diff()
+        gain = delta.clip(lower=0)
+        loss = -delta.clip(upper=0)
+        avg_gain = gain.rolling(window=14).mean()
+        avg_loss = loss.rolling(window=14).mean()
+        rs = avg_gain / avg_loss
+        df["rsi"] = (100 - (100 / (1 + rs))).round(2)
 
-        df.dropna(inplace=True)
+        # 9) Backfill any NaNs from rolling/ewm
+        df = df.fillna(method="bfill").copy()
 
-        # Format types
-        df["Date"] = pd.to_datetime(df["Date"]).dt.strftime("%Y-%m-%d")
-        for col in ["Open", "High", "Low", "Close"]:
-            df[col] = df[col].astype(float)
-
-        # Optional: add 20-period SMA
-        df["SMA20"] = df["Close"].rolling(window=20).mean().round(2)
-        df = df.dropna(subset=["SMA20"])  # removes NaN rows
-
-
-        history_data = df.to_dict(orient="records")
-
-        return JSONResponse(content={
-            "ticker": ticker.upper(),
-            "range": range,
-            "history": history_data
-        })
+        # 10) Serialize and respond
+        history_records = df.to_dict(orient="records")
+        return JSONResponse(
+            content={
+                "ticker": ticker.upper(),
+                "range": range,
+                "history": history_records
+            }
+        )
 
     except Exception as e:
-        print("Error in get_price_history:", str(e))
-        return JSONResponse(status_code=500, content={"error": str(e)})
+        traceback.print_exc()
+        return JSONResponse(
+            status_code=500,
+            content={"error": f"Unexpected error: {str(e)}"}
+        )
 
 
-
-
-
-
-
+    
