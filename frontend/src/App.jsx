@@ -1,46 +1,82 @@
+// src/App.jsx
 import React, { useState, useEffect, useRef } from "react";
 import {
   LineChart,
   Line,
   XAxis,
   YAxis,
-  Tooltip,
+  Tooltip as RechartsTooltip,
   ResponsiveContainer,
   CartesianGrid,
 } from "recharts";
 import { createChart } from "lightweight-charts";
 
-export default function App() {
-  // Utility functions for localStorage
-  const getStored = (key, fallback) => {
-    try {
-      const item = localStorage.getItem(key);
-      return item ? JSON.parse(item) : fallback;
-    } catch {
-      return fallback;
-    }
-  };
-  const setStored = (key, val) => {
-    try { localStorage.setItem(key, JSON.stringify(val)); } catch {}
-  };
+import HelpTooltip from "./components/HelpTooltip";
+import TooltipWord from "./components/TooltipWord";
+import GlossaryModal from "./components/GlossaryModal";
 
-  // Persistent toggle states
+// LocalStorage helpers
+const getStored = (key, fallback) => {
+  try {
+    const v = localStorage.getItem(key);
+    return v ? JSON.parse(v) : fallback;
+  } catch {
+    return fallback;
+  }
+};
+const setStored = (key, val) => {
+  try {
+    localStorage.setItem(key, JSON.stringify(val));
+  } catch {}
+};
+
+// EMA color map & glossary
+const emaColorMap = {
+  ema9: "#b15928",
+  ema20: "#6b7280",
+  ema50: "#4b5563",
+  ema100: "#374151",
+  ema200: "#111827",
+};
+const glossary = {
+  SMA20:
+    "Simple Moving Average over 20 days. Smooths out short-term price noise.",
+  EMA: "Exponential Moving Average. Gives more weight to recent price data.",
+  RSI:
+    "Relative Strength Index. Identifies overbought (70+) or oversold (30-) conditions.",
+  Candlesticks:
+    "Displays daily open, high, low, and close prices as visual bars.",
+  Confidence:
+    "How confident the AI model is in its prediction. Higher % = stronger signal.",
+};
+
+export default function App() {
+  // 1️⃣ Toggles
   const [darkMode, setDarkMode] = useState(() => getStored("darkMode", false));
-  const [showCandles, setShowCandles] = useState(() => getStored("showCandles", false));
+  const [showCandles, setShowCandles] = useState(() =>
+    getStored("showCandles", false)
+  );
   const [showSMA, setShowSMA] = useState(() => getStored("showSMA", true));
   const [showRSI, setShowRSI] = useState(() => getStored("showRSI", false));
   const [showEMAs, setShowEMAs] = useState(() =>
-    getStored("showEMAs", { ema9: false, ema20: false, ema50: false, ema100: false, ema200: false })
+    getStored("showEMAs", {
+      ema9: false,
+      ema20: false,
+      ema50: false,
+      ema100: false,
+      ema200: false,
+    })
   );
-
-  // Sync toggles back to localStorage
   useEffect(() => setStored("darkMode", darkMode), [darkMode]);
   useEffect(() => setStored("showCandles", showCandles), [showCandles]);
   useEffect(() => setStored("showSMA", showSMA), [showSMA]);
   useEffect(() => setStored("showRSI", showRSI), [showRSI]);
   useEffect(() => setStored("showEMAs", showEMAs), [showEMAs]);
 
-  // Core states
+  // 2️⃣ Glossary modal
+  const [glossaryOpen, setGlossaryOpen] = useState(false);
+
+  // 3️⃣ Core state & refs
   const [ticker, setTicker] = useState("");
   const [range, setRange] = useState("1mo");
   const [result, setResult] = useState(null);
@@ -52,27 +88,19 @@ export default function App() {
   const [smaAnimatedData, setSmaAnimatedData] = useState([]);
   const [histError, setHistError] = useState(null);
 
-  const chartContainerRef = useRef(null);
+  const chartRef = useRef(null);
   const prevTicker = useRef("");
 
-  const emaColorMap = {
-    ema9: "#f97316",
-    ema20: "#3b82f6",
-    ema50: "#10b981",
-    ema100: "#6366f1",
-    ema200: "#ef4444",
-  };
-
-  // Fetch prediction
+  // 4️⃣ Fetch prediction & history via Vite proxy
   const getSignal = async (symbol = ticker) => {
     if (!symbol) return;
     setLoading(true);
     setResult(null);
     try {
-      const res = await fetch(`http://localhost:8000/predict/${symbol.toUpperCase()}`);
+      const res = await fetch(`/predict/${symbol.toUpperCase()}`);
       const data = await res.json();
       setResult(data);
-      if (!data.error) setHistory(prev => [...prev, data]);
+      if (!data.error) setHistory((prev) => [...prev, data]);
       await fetchHistory(symbol, range);
     } catch {
       setResult({ error: "Failed to fetch signal." });
@@ -80,12 +108,10 @@ export default function App() {
       setLoading(false);
     }
   };
-
-  // Fetch history data
   const fetchHistory = async (symbol, selectedRange) => {
     try {
       const res = await fetch(
-        `http://localhost:8000/history/${symbol.toUpperCase()}?range=${selectedRange}`
+        `/history/${symbol.toUpperCase()}?range=${selectedRange}`
       );
       const json = await res.json();
       if (!res.ok) {
@@ -101,15 +127,17 @@ export default function App() {
     }
   };
 
-  // Animate confidence bar
+  // 5️⃣ Animate confidence bar
   useEffect(() => {
     if (result && !result.error && result.ticker !== prevTicker.current) {
       setBarWidth(0);
-      requestAnimationFrame(() => requestAnimationFrame(() => setBarWidth(result.confidence)));
-      let start = 0;
-      const end = result.confidence;
-      const steps = Math.ceil(900 / 25);
-      const inc = end / steps;
+      requestAnimationFrame(() =>
+        requestAnimationFrame(() => setBarWidth(result.confidence))
+      );
+      let start = 0,
+        end = result.confidence,
+        steps = Math.ceil(900 / 25),
+        inc = end / steps;
       const timer = setInterval(() => {
         start += inc;
         setAnimatedConfidence(Math.min(end, Math.round(start)));
@@ -120,18 +148,20 @@ export default function App() {
     }
   }, [result]);
 
-  // Refetch on range change
-  useEffect(() => { if (ticker) fetchHistory(ticker, range); }, [range]);
+  // 6️⃣ Refetch history on range change
+  useEffect(() => {
+    if (ticker) fetchHistory(ticker, range);
+  }, [range]);
 
-  // Animate SMA line
+  // 7️⃣ Animate SMA path
   useEffect(() => {
     if (!showSMA || !priceData.length) {
       setSmaAnimatedData([]);
       return;
     }
     const full = priceData
-      .filter(d => d.sma20 != null)
-      .map(d => ({ Date: d.date, Close: +d.close, SMA20: +d.sma20 }));
+      .filter((d) => d.sma20 != null)
+      .map((d) => ({ Date: d.date, Close: +d.close, SMA20: +d.sma20 }));
     let i = 0;
     const run = () => {
       if (i <= full.length) {
@@ -143,55 +173,66 @@ export default function App() {
     run();
   }, [priceData, showSMA, range]);
 
-  // Render candlestick chart
+  // 8️⃣ Draw candlesticks + overlays
   useEffect(() => {
-    if (!showCandles || !chartContainerRef.current) return;
-    chartContainerRef.current.innerHTML = "";
-    const chart = createChart(chartContainerRef.current, {
+    if (!showCandles || !chartRef.current) return;
+    chartRef.current.innerHTML = "";
+    const chart = createChart(chartRef.current, {
       layout: {
-        background: { color: darkMode ? "#121212" : "#ffffff" },
-        textColor: darkMode ? "#ffffff" : "#000000",
+        background: { color: darkMode ? "#111827" : "#f3f4f6" },
+        textColor: darkMode ? "#f3f4f6" : "#111827",
       },
       grid: {
-        vertLines: { color: darkMode ? "#444" : "#eee" },
-        horzLines: { color: darkMode ? "#444" : "#eee" },
+        vertLines: { color: darkMode ? "#374151" : "#e5e7eb" },
+        horzLines: { color: darkMode ? "#374151" : "#e5e7eb" },
       },
-      width: chartContainerRef.current.clientWidth,
+      width: chartRef.current.clientWidth,
       height: 250,
     });
+
     const cdata = priceData
-      .map(d => ({
+      .map((d) => ({
         time: Math.floor(new Date(d.date).getTime() / 1000),
         open: +d.open,
         high: +d.high,
         low: +d.low,
         close: +d.close,
       }))
-      .filter(d => !isNaN(d.open));
+      .filter((d) => !isNaN(d.open));
     chart.addCandlestickSeries().setData(cdata);
     chart.timeScale().fitContent();
-    Object.entries({ sma20: showSMA, ...showEMAs }).forEach(([key, vis]) => {
-      if (!vis) return;
-      const series = chart.addLineSeries({ color: emaColorMap[key], lineWidth: 2 });
-      const data = priceData
-        .filter(x => x[key] != null)
-        .map(x => ({ time: Math.floor(new Date(x.date).getTime() / 1000), value: +x[key] }));
-      let j = 0;
-      const anim = () => {
-        if (j <= data.length) {
-          series.setData(data.slice(0, j));
-          j++;
-          requestAnimationFrame(anim);
-        }
-      };
-      anim();
-    });
+
+    Object.entries({ sma20: showSMA, ...showEMAs }).forEach(
+      ([key, visible]) => {
+        if (!visible) return;
+        const series = chart.addLineSeries({
+          color: emaColorMap[key],
+          lineWidth: 2,
+        });
+        const data = priceData
+          .filter((x) => x[key] != null)
+          .map((x) => ({
+            time: Math.floor(new Date(x.date).getTime() / 1000),
+            value: +x[key],
+          }));
+        let j = 0;
+        const animate = () => {
+          if (j <= data.length) {
+            series.setData(data.slice(0, j));
+            j++;
+            requestAnimationFrame(animate);
+          }
+        };
+        animate();
+      }
+    );
+
     return () => chart.remove();
   }, [priceData, showCandles, showSMA, showEMAs, darkMode]);
 
-  // Prepare line chart data
+  // 9️⃣ Data prep & UI helpers
   const formatForLineChart = () =>
-    priceData.map(d => ({
+    priceData.map((d) => ({
       Date: d.date,
       Close: parseFloat(d.close),
       SMA20: d.sma20 != null ? parseFloat(d.sma20) : null,
@@ -201,17 +242,16 @@ export default function App() {
       ema100: d.ema100 != null ? parseFloat(d.ema100) : null,
       ema200: d.ema200 != null ? parseFloat(d.ema200) : null,
     }));
-
   const lineChartData = showSMA ? smaAnimatedData : formatForLineChart();
-
-  // UI helpers
   const Spinner = () => (
     <div className="flex items-center justify-center mt-6">
-      <div className="w-6 h-6 border-4 border-gray-400 border-dashed rounded-full animate-spin" />
+      <div className="w-6 h-6 border-4 border-gray-500 border-dashed rounded-full animate-spin" />
     </div>
   );
-  const getSignalTextColor = s => (s === "Buy" ? "text-green-500" : "text-red-500");
-  const getSignalBarColor = s => (s === "Buy" ? "bg-green-500" : "bg-red-500");
+  const getSignalTextColor = (s) =>
+    s === "Buy" ? "text-green-400" : "text-red-400";
+  const getSignalBarColor = (s) =>
+    s === "Buy" ? "bg-green-400" : "bg-red-400";
   const rangeOptions = [
     { label: "1M", value: "1mo" },
     { label: "3M", value: "3mo" },
@@ -220,46 +260,84 @@ export default function App() {
     { label: "1Y", value: "1y" },
   ];
 
+  // 🔟 JSX
   return (
-    <div className={`${darkMode ? "bg-[#121212] text-white" : "bg-[#f5f5f5] text-gray-900"} min-h-screen font-sans transition-colors duration-500 ease-in-out`}>
-      <header className={`border-b px-8 py-4 flex justify-between items-center shadow-sm transition-colors duration-500 ease-in-out ${darkMode ? "bg-[#1e1e1e]" : "bg-white"}`}>
-        <h1 className="text-2xl font-semibold tracking-tight">SignalSense AI</h1>
-        <button onClick={() => setDarkMode(!darkMode)} className="px-4 py-2 rounded shadow text-sm font-medium transition bg-gray-700 text-white hover:bg-gray-600 dark:bg-gray-300 dark:text-gray-900 dark:hover:bg-gray-200">
+    <div
+      className={`min-h-screen relative ${
+        darkMode ? "bg-gray-950 text-gray-100" : "bg-gray-100 text-gray-900"
+      } transition-colors duration-500`}
+    >
+      {/* Glossary */}
+      <button
+        onClick={() => setGlossaryOpen(true)}
+        className="fixed bottom-4 right-4 bg-gray-700 text-gray-100 p-2 rounded-full shadow hover:bg-gray-600 transition"
+      >
+        ?
+      </button>
+      <GlossaryModal
+        open={glossaryOpen}
+        onClose={() => setGlossaryOpen(false)}
+        glossary={glossary}
+        darkMode={darkMode}
+      />
+
+      <header
+        className={`border-b px-8 py-4 flex justify-between items-center shadow-sm ${
+          darkMode ? "bg-gray-900" : "bg-gray-200"
+        } transition-colors duration-500`}
+      >
+        <h1 className="text-2xl font-semibold tracking-tight">
+          SignalSense AI
+        </h1>
+        <button
+          onClick={() => setDarkMode(!darkMode)}
+          className="px-4 py-2 rounded shadow text-sm font-medium transition bg-gray-700 text-gray-100 hover:bg-gray-600"
+        >
           {darkMode ? "Light Mode" : "Dark Mode"}
         </button>
       </header>
 
-      <main className="p-8 flex flex-col items-center transition-colors duration-500 ease-in-out">
-        {/* Input & Button */}
-        <div className="flex gap-3 mb-6">
+      <main className="p-8 flex flex-col items-center">
+        {/* Input row */}
+        <div className="flex gap-3 mb-6 w-full max-w-xl">
           <input
-            className={`px-4 py-2 border rounded-lg shadow-sm focus:outline-none focus:ring-2 w-64 placeholder-gray-400 text-sm transition ${darkMode ? "bg-[#2a2a2a] text-white border-gray-600 focus:ring-gray-500" : "bg-white text-gray-900 border-gray-300 focus:ring-gray-300"}`}
+            className={`flex-1 px-4 py-2 border rounded-lg shadow-sm focus:outline-none focus:ring-2 placeholder-gray-400 text-sm transition ${
+              darkMode
+                ? "bg-gray-800 text-gray-100 border-gray-600 focus:ring-gray-500"
+                : "bg-white text-gray-900 border-gray-300 focus:ring-gray-300"
+            }`}
             placeholder="Enter ticker (e.g. AAPL)"
             value={ticker}
-            onChange={e => setTicker(e.target.value)}
+            onChange={(e) => setTicker(e.target.value)}
           />
           <button
             onClick={() => getSignal()}
             disabled={loading}
-            className={`px-4 py-2 rounded-lg font-medium text-sm transition ${loading ? "bg-gray-400 text-white" : darkMode ? "bg-gray-100 text-black hover:bg-gray-200" : "bg-gray-900 text-white hover:bg-gray-800"}`}
+            className={`px-4 py-2 rounded-lg font-medium text-sm transition ${
+              loading
+                ? "bg-gray-500 text-gray-100 cursor-not-allowed"
+                : darkMode
+                ? "bg-gray-700 text-gray-100 hover:bg-gray-600"
+                : "bg-gray-900 text-gray-100 hover:bg-gray-800"
+            }`}
           >
             {loading ? "Loading..." : "Get Signal"}
           </button>
         </div>
+        {loading && <Spinner />}
 
-        {loading && <Spinner />}&#10;
-                {/* Result Box */}
-                {result && (
+        {/* Signal result */}
+        {result && (
           <div
-            className={`rounded-xl shadow-lg p-6 w-full max-w-xl mb-10 transition-colors duration-500 ease-in-out ${
-              darkMode ? "bg-[#1f1f1f]" : "bg-white"
+            className={`rounded-xl shadow-lg p-6 w-full max-w-xl mb-10 transition-colors duration-500 ${
+              darkMode ? "bg-gray-900" : "bg-white"
             }`}
           >
             {result.error ? (
-              <p className="text-red-500 font-semibold">{result.error}</p>
+              <p className="text-red-400 font-semibold">{result.error}</p>
             ) : (
               <>
-                <div className="flex items-baseline justify-between mb-2">
+                <div className="flex justify-between items-baseline mb-2">
                   <h2 className="text-2xl font-bold">{result.ticker}</h2>
                   <p
                     className={`text-lg font-medium ${getSignalTextColor(
@@ -269,50 +347,75 @@ export default function App() {
                     {result.signal}
                   </p>
                 </div>
+
+                {/* Confidence bar */}
                 <div className="mb-4">
-                  <p className="text-sm text-gray-500 mb-1">Confidence</p>
-                  <div className="w-full bg-gray-200 rounded-full h-3">
+                  <p className="text-sm text-gray-400 mb-1 flex items-center">
+                    Confidence
+                    <HelpTooltip text={glossary.Confidence} />
+                  </p>
+                  <div className="w-full bg-gray-800 rounded-full h-3">
                     <div
                       className={`h-3 rounded-full transition-all duration-700 ease-in-out ${getSignalBarColor(
                         result.signal
-                      )} bg-opacity-80`}
+                      )}`}
                       style={{ width: `${barWidth}%` }}
                     />
                   </div>
-                  <p className="text-xs text-gray-500 mt-1">
+                  <p className="text-xs text-gray-400 mt-1">
                     {animatedConfidence}%
                   </p>
                 </div>
-                <p className="text-sm leading-relaxed text-gray-700 dark:text-gray-300">
-                  {result.explanation}
+
+                {/* Explanation with glossary */}
+                <p className="text-sm leading-relaxed mb-2">
+                  {result.explanation.split(/\s+/).map((w, i) =>
+                    glossary[w.toUpperCase()] ? (
+                      <TooltipWord
+                        key={i}
+                        word={w}
+                        description={glossary[w.toUpperCase()]}
+                      />
+                    ) : (
+                      w + " "
+                    )
+                  )}
                 </p>
+
+                {/* Inline hints */}
+                {result.signal === "Buy" && (
+                  <p className="text-xs text-green-400 mt-2">
+                    Indicates a likely price increase.
+                  </p>
+                )}
+                {result.signal === "Sell" && (
+                  <p className="text-xs text-red-400 mt-2">
+                    Indicates a potential price decline.
+                  </p>
+                )}
               </>
             )}
           </div>
         )}
 
-        {/* Prediction History */}
+        {/* History */}
         {history.length > 0 && (
-          <div className="mt-4 w-full max-w-xl">
+          <div className="w-full max-w-xl mb-8">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300">
-                Prediction History
-              </h3>
+              <h3 className="text-lg font-semibold">Prediction History</h3>
               <button
                 onClick={() => setHistory([])}
-                className="text-sm text-gray-500 hover:text-gray-800 dark:hover:text-white"
+                className="text-sm text-gray-500 hover:text-gray-700 transition"
               >
-                Clear History
+                Clear
               </button>
             </div>
             <ul className="space-y-3">
-              {history.map((item, idx) => (
+              {history.map((item, i) => (
                 <li
-                  key={idx}
-                  className={`p-4 rounded-lg shadow flex justify-between items-center transition-colors duration-500 ease-in-out ${
-                    darkMode
-                      ? "bg-[#1e1e1e] text-white"
-                      : "bg-white text-gray-900"
+                  key={i}
+                  className={`p-4 rounded-lg shadow flex justify-between items-center ${
+                    darkMode ? "bg-gray-800" : "bg-white"
                   }`}
                 >
                   <span className="font-semibold">{item.ticker}</span>
@@ -329,91 +432,81 @@ export default function App() {
           </div>
         )}
 
-        {/* Price Chart Controls */}
-        <div className="mb-4 w-full max-w-xl flex flex-wrap gap-2 items-center justify-between">
-          <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300">
-            Price Chart ({range})
-          </h3>
-          <div className="flex flex-wrap gap-2 items-center">
-            {rangeOptions.map(opt => (
-              <button
-                key={opt.value}
-                onClick={() => setRange(opt.value)}
-                className={`px-2 py-1 text-sm rounded ${
-                  range === opt.value
-                    ? darkMode
-                      ? "bg-gray-100 text-black"
-                      : "bg-gray-900 text-white"
-                    : darkMode
-                    ? "bg-[#2a2a2a] text-white"
-                    : "bg-gray-200 text-black"
-                }`}
-              >
-                {opt.label}
-              </button>
-            ))}
-            <label className="flex items-center gap-1">
+        {/* Chart controls */}
+        <div className="w-full max-w-xl mb-6 flex flex-wrap gap-4 items-center">
+          <h3 className="text-lg font-semibold">Price Chart ({range})</h3>
+          {rangeOptions.map((opt) => (
+            <button
+              key={opt.value}
+              onClick={() => setRange(opt.value)}
+              className={`px-3 py-1 rounded text-sm transition ${
+                range === opt.value
+                  ? darkMode
+                    ? "bg-gray-700 text-gray-100"
+                    : "bg-gray-900 text-gray-100"
+                  : darkMode
+                  ? "bg-gray-800 text-gray-300"
+                  : "bg-gray-200 text-gray-700"
+              }`}
+            >
+              {opt.label}
+            </button>
+          ))}
+          <label className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={showCandles}
+              onChange={() => setShowCandles(!showCandles)}
+            />
+            Candlesticks <HelpTooltip text={glossary.Candlesticks} />
+          </label>
+          <label className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={showSMA}
+              onChange={() => setShowSMA(!showSMA)}
+            />
+            SMA 20 <HelpTooltip text={glossary.SMA20} />
+          </label>
+          {Object.keys(showEMAs).map((k) => (
+            <label key={k} className="flex items-center gap-2">
               <input
                 type="checkbox"
-                checked={showCandles}
-                onChange={() => setShowCandles(!showCandles)}
+                checked={showEMAs[k]}
+                onChange={() =>
+                  setShowEMAs((prev) => ({ ...prev, [k]: !prev[k] }))
+                }
               />
-              Candlesticks
+              {k.toUpperCase()} <HelpTooltip text={glossary.EMA} />
             </label>
-            <label className="flex items-center gap-1">
-              <input
-                type="checkbox"
-                checked={showSMA}
-                onChange={() => setShowSMA(!showSMA)}
-              />
-              SMA 20
-            </label>
-            {Object.entries(showEMAs).map(([key, val]) => (
-              <label key={key} className="flex items-center gap-1">
-                <input
-                  type="checkbox"
-                  checked={val}
-                  onChange={() =>
-                    setShowEMAs(prev => ({ ...prev, [key]: !prev[key] }))
-                  }
-                />
-                {key.toUpperCase()}
-              </label>
-            ))}
-            <label className="flex items-center gap-1">
-              <input
-                type="checkbox"
-                checked={showRSI}
-                onChange={() => setShowRSI(!showRSI)}
-              />
-              RSI
-            </label>
-          </div>
+          ))}
+          <label className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={showRSI}
+              onChange={() => setShowRSI(!showRSI)}
+            />
+            RSI <HelpTooltip text={glossary.RSI} />
+          </label>
         </div>
 
-        {/* Chart Display */}
-        {histError && (
-          <p className="text-red-500 mb-4">History error: {histError}</p>
-        )}
+        {/* Chart display */}
+        {histError && <p className="text-red-400 mb-4">Error: {histError}</p>}
         {priceData.length > 0 && (
-          <div className="mb-12 w-full max-w-xl">
+          <div className="w-full max-w-xl">
             {showCandles ? (
-              <div
-                ref={chartContainerRef}
-                className="w-full"
-                style={{ height: 250 }}
-              />
+              <div ref={chartRef} className="w-full" style={{ height: 250 }} />
             ) : (
               <ResponsiveContainer width="100%" height={250}>
                 <LineChart data={lineChartData}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="Date" tick={{ fontSize: 10 }} />
                   <YAxis domain={["auto", "auto"]} tick={{ fontSize: 10 }} />
-                  <Tooltip />
+                  <RechartsTooltip />
                   <Line
                     type="monotone"
                     dataKey="Close"
-                    stroke={darkMode ? "#90cdf4" : "#1a202c"}
+                    stroke={darkMode ? "#d1d5db" : "#374151"}
                     strokeWidth={2}
                     isAnimationActive={false}
                   />
@@ -421,20 +514,20 @@ export default function App() {
                     <Line
                       type="monotone"
                       dataKey="SMA20"
-                      stroke="#eab308"
+                      stroke="#9ca3af"
                       strokeWidth={2}
                       dot={false}
                       isAnimationActive={false}
                     />
                   )}
                   {Object.entries(showEMAs).map(
-                    ([key, isVisible]) =>
-                      isVisible && (
+                    ([k, v]) =>
+                      v && (
                         <Line
-                          key={key}
+                          key={k}
                           type="monotone"
-                          dataKey={key}
-                          stroke={emaColorMap[key]}
+                          dataKey={k}
+                          stroke={emaColorMap[k]}
                           strokeWidth={2}
                           dot={false}
                           isAnimationActive={false}
@@ -446,23 +539,23 @@ export default function App() {
             )}
             {showRSI && (
               <div className="mt-6 w-full max-w-xl">
-                <h4 className="text-sm font-semibold mb-2 text-gray-600 dark:text-gray-300">
-                  Relative Strength Index (RSI)
+                <h4 className="text-sm font-semibold mb-2 text-gray-400">
+                  RSI
                 </h4>
                 <ResponsiveContainer width="100%" height={100}>
                   <LineChart
-                    data={priceData.map(d => ({
+                    data={priceData.map((d) => ({
                       Date: d.date,
-                      RSI: d.rsi != null ? parseFloat(d.rsi) : null
+                      RSI: d.rsi != null ? parseFloat(d.rsi) : null,
                     }))}
                   >
                     <XAxis dataKey="Date" hide />
                     <YAxis domain={[0, 100]} ticks={[30, 50, 70]} />
-                    <Tooltip />
+                    <RechartsTooltip />
                     <Line
                       type="monotone"
                       dataKey="RSI"
-                      stroke="#f97316"
+                      stroke="#9ca3af"
                       strokeWidth={2}
                       dot={false}
                       isAnimationActive={false}
@@ -477,4 +570,5 @@ export default function App() {
     </div>
   );
 }
+
 
