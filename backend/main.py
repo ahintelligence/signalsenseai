@@ -2,6 +2,7 @@ from fastapi import FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
 from app.predict import get_prediction
 from app.history import get_price_history
+from routes.summary import router as summary_router 
 
 app = FastAPI()
 
@@ -23,3 +24,4 @@ def history(ticker: str, range: str = Query("1mo", enum=["1mo", "3mo", "6mo", "y
     return get_price_history(ticker, range)
 
 
+app.include_router(summary_router)

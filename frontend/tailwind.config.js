@@ -6,11 +6,17 @@ export default {
   ],
   theme: {
     extend: {
+      fontFamily: {
+        sans: ['"Exo 2"', 'system-ui', 'sans-serif'], // Or replace "Inter" with "Rubik", etc.
+      },
+      colors: {
+        zinc: require('tailwindcss/colors').zinc,
+      }
+    },
+  
+      
       animation: {
         fadeIn: 'fadeIn 0.5s ease-in-out',
-      },
-      fontFamily: {
-        inter: ['Inter', 'sans-serif'],
       },
       keyframes: {
         fadeIn: {
@@ -19,6 +25,5 @@ export default {
         },
       },
     },
-  },
   plugins: [],
 };
