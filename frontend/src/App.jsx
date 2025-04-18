@@ -28,6 +28,9 @@ export default function App() {
   );
   const [showSplash, setShowSplash] = useState(true);
   const [splashClass, setSplashClass] = useState("opacity-0");
+  const [contentKey, setContentKey] = useState(0); // helps trigger animation
+  const [showResult, setShowResult] = useState(false);
+
 
   useEffect(() => {
     const fadeIn = setTimeout(() => setSplashClass("opacity-100"), 100);
@@ -60,12 +63,18 @@ export default function App() {
     barWidth,
     animatedConfidence,
     loading,
-    getSignal,
+    getSignal: originalGetSignal,
     histError,
   } = useSignalLogic();
 
   const chartRef = useRef(null);
   const smaAnimatedData = useChartAnimation(priceData, showSMA, range);
+
+  // Wrap getSignal to update animation key after fetching
+  const getSignal = async () => {
+    await originalGetSignal();
+    setContentKey(prev => prev + 1); // Trigger animation
+  };
 
   const lineChartData = showSMA
     ? smaAnimatedData
@@ -94,6 +103,7 @@ export default function App() {
         darkMode ? "bg-black text-zinc-200" : "bg-zinc-100 text-zinc-900"
       } transition-colors duration-500`}
     >
+      {/* Splash screen */}
       {showSplash && (
         <div
           className={`fixed inset-0 bg-black text-white flex items-center justify-center z-50 transition-opacity duration-1000 ${splashClass}`}
@@ -104,6 +114,7 @@ export default function App() {
         </div>
       )}
 
+      {/* Glossary Button */}
       <button
         onClick={() => setGlossaryOpen(true)}
         className="fixed bottom-4 right-4 bg-gray-700 text-gray-100 p-2 rounded-full shadow hover:bg-gray-600 transition"
@@ -111,10 +122,18 @@ export default function App() {
         ?
       </button>
 
-      <GlossaryModal open={glossaryOpen} onClose={() => setGlossaryOpen(false)} darkMode={darkMode} />
+      {/* Glossary Modal */}
+      <GlossaryModal
+        open={glossaryOpen}
+        onClose={() => setGlossaryOpen(false)}
+        darkMode={darkMode}
+        glossary={glossary}
+      />
 
+      {/* Header */}
       <Header darkMode={darkMode} toggleDarkMode={() => setDarkMode((prev) => !prev)} />
 
+      {/* Main content */}
       <main
         className={`p-8 flex flex-col items-center text-sm transition-all duration-700 ease-out transform ${
           showSplash ? "opacity-0 scale-95" : "opacity-100 scale-100"
@@ -124,20 +143,54 @@ export default function App() {
           ticker={ticker}
           setTicker={setTicker}
           loading={loading}
-          getSignal={getSignal}
+          getSignal={() => {
+            setShowResult(false); // reset animations
+            getSignal(ticker, () => setShowResult(true)); // trigger animations after fetch
+          }}
           darkMode={darkMode}
         />
 
         {loading && <Spinner />}
 
-        <SignalSummary
-          result={result}
-          animatedConfidence={animatedConfidence}
-          barWidth={barWidth}
-          darkMode={darkMode}
-        />
+        {/* Animated output content */}
+        {!loading && result && (
+        <div
+          key={contentKey}
+          className="w-full flex flex-col items-center justify-center gap-6 mt-6 max-w-xl mx-auto text-center"
+        >
+          <div className="w-full animate-fadeIn">
+            <SignalSummary
+              result={result}
+              animatedConfidence={animatedConfidence}
+              barWidth={barWidth}
+              darkMode={darkMode}
+            />
+          </div>
 
-        <PredictionHistory history={history} setHistory={setHistory} darkMode={darkMode} />
+          <div className="w-full animate-fadeInDelayed1">
+            <PredictionHistory
+              history={history}
+              setHistory={setHistory}
+              darkMode={darkMode}
+            />
+          </div>
+
+          <div className="w-full animate-fadeInDelayed2">
+            <ChartDisplay
+              chartRef={chartRef}
+              showCandles={showCandles}
+              darkMode={darkMode}
+              lineChartData={lineChartData}
+              showSMA={showSMA}
+              showEMAs={showEMAs}
+              showRSI={showRSI}
+              priceData={priceData}
+              histError={histError}
+            />
+          </div>
+        </div>
+      )}
+
 
         <LatticeControls
           ticker={ticker}
@@ -154,18 +207,6 @@ export default function App() {
           showEMAs={showEMAs}
           setShowEMAs={setShowEMAs}
           darkMode={darkMode}
-        />
-
-        <ChartDisplay
-          chartRef={chartRef}
-          showCandles={showCandles}
-          darkMode={darkMode}
-          lineChartData={lineChartData}
-          showSMA={showSMA}
-          showEMAs={showEMAs}
-          showRSI={showRSI}
-          priceData={priceData}
-          histError={histError}
         />
       </main>
     </div>
