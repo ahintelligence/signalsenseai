@@ -10,8 +10,8 @@ export default function Header({ darkMode, toggleDarkMode }) {
     return (
       <header className="px-6 py-4 bg-black text-gray-100 flex justify-between items-center">
         <h1 className="text-xl font-semibold tracking-tight">
-  {flipA("Lattice | VANTHEON")}
-</h1>
+        {flipA("Lattice | VANTHEON")}
+        </h1>
 
         <button
           onClick={toggleDarkMode}

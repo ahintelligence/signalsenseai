@@ -6,7 +6,6 @@ import SignalSummary from "./components/SignalSummary";
 import PredictionHistory from "./components/PredictionHistory";
 import LatticeControls from "./components/LatticeControls";
 import ChartDisplay from "./components/ChartDisplay";
-import InterfaceSection from "./components/InterfaceSection";
 import Spinner from "./components/Spinner";
 
 import { getStored, setStored } from "./utils/localStorage";
@@ -14,23 +13,24 @@ import { useSignalLogic } from "./hooks/useSignalLogic";
 import { useChartAnimation } from "./hooks/useChartAnimation";
 
 function flipA(text) {
-  return text.replace(/A/g, 'Ʌ');
+  return text.replace(/A/g, "Ʌ");
 }
 
 export default function App() {
   const [darkMode, setDarkMode] = useState(() => getStored("darkMode", false));
   const [glossaryOpen, setGlossaryOpen] = useState(false);
+  const [showSplash, setShowSplash] = useState(true);
+  const [splashClass, setSplashClass] = useState("opacity-0");
+  const [latestPrice, setLatestPrice] = useState(null);
+  const [contentKey, setContentKey] = useState(0);
+  const [showResult, setShowResult] = useState(false);
+
   const [showCandles, setShowCandles] = useState(() => getStored("showCandles", false));
   const [showSMA, setShowSMA] = useState(() => getStored("showSMA", true));
   const [showRSI, setShowRSI] = useState(() => getStored("showRSI", false));
   const [showEMAs, setShowEMAs] = useState(() =>
     getStored("showEMAs", { ema9: false, ema20: false, ema50: false, ema100: false, ema200: false })
   );
-  const [showSplash, setShowSplash] = useState(true);
-  const [splashClass, setSplashClass] = useState("opacity-0");
-  const [contentKey, setContentKey] = useState(0); // helps trigger animation
-  const [showResult, setShowResult] = useState(false);
-
 
   useEffect(() => {
     const fadeIn = setTimeout(() => setSplashClass("opacity-100"), 100);
@@ -70,10 +70,29 @@ export default function App() {
   const chartRef = useRef(null);
   const smaAnimatedData = useChartAnimation(priceData, showSMA, range);
 
-  // Wrap getSignal to update animation key after fetching
-  const getSignal = async () => {
+  const fetchLatestPrice = async () => {
+    if (!ticker) return;
+    try {
+      const res = await fetch(`http://localhost:8000/latest-price/${ticker}`);
+      const data = await res.json();
+      setLatestPrice(data);
+    } catch (err) {
+      console.error("Failed to refresh latest price:", err);
+    }
+  };
+
+  useEffect(() => {
+    fetchLatestPrice();
+    const interval = setInterval(fetchLatestPrice, 300000); // every 5 minutes
+    return () => clearInterval(interval);
+  }, [ticker]);
+
+  const handleSignalFetch = async () => {
+    setShowResult(false);
     await originalGetSignal();
-    setContentKey(prev => prev + 1); // Trigger animation
+    setContentKey((prev) => prev + 1);
+    setShowResult(true);
+    fetchLatestPrice();
   };
 
   const lineChartData = showSMA
@@ -99,11 +118,10 @@ export default function App() {
 
   return (
     <div
-      className={`min-h-screen font-[\'Exo 2\'],sans-serif ${
+      className={`min-h-screen font-['Exo 2'],sans-serif ${
         darkMode ? "bg-black text-zinc-200" : "bg-zinc-100 text-zinc-900"
       } transition-colors duration-500`}
     >
-      {/* Splash screen */}
       {showSplash && (
         <div
           className={`fixed inset-0 bg-black text-white flex items-center justify-center z-50 transition-opacity duration-1000 ${splashClass}`}
@@ -114,7 +132,6 @@ export default function App() {
         </div>
       )}
 
-      {/* Glossary Button */}
       <button
         onClick={() => setGlossaryOpen(true)}
         className="fixed bottom-4 right-4 bg-gray-700 text-gray-100 p-2 rounded-full shadow hover:bg-gray-600 transition"
@@ -122,7 +139,6 @@ export default function App() {
         ?
       </button>
 
-      {/* Glossary Modal */}
       <GlossaryModal
         open={glossaryOpen}
         onClose={() => setGlossaryOpen(false)}
@@ -130,10 +146,8 @@ export default function App() {
         glossary={glossary}
       />
 
-      {/* Header */}
       <Header darkMode={darkMode} toggleDarkMode={() => setDarkMode((prev) => !prev)} />
 
-      {/* Main content */}
       <main
         className={`p-8 flex flex-col items-center text-sm transition-all duration-700 ease-out transform ${
           showSplash ? "opacity-0 scale-95" : "opacity-100 scale-100"
@@ -143,59 +157,72 @@ export default function App() {
           ticker={ticker}
           setTicker={setTicker}
           loading={loading}
-          getSignal={() => {
-            setShowResult(false); // reset animations
-            getSignal(ticker, () => setShowResult(true)); // trigger animations after fetch
-          }}
+          getSignal={handleSignalFetch}
           darkMode={darkMode}
         />
 
         {loading && <Spinner />}
 
-        {/* Animated output content */}
         {!loading && result && (
-        <div
-          key={contentKey}
-          className="w-full flex flex-col items-center justify-center gap-6 mt-6 max-w-xl mx-auto text-center"
-        >
-          <div className="w-full animate-fadeIn">
-            <SignalSummary
-              result={result}
-              animatedConfidence={animatedConfidence}
-              barWidth={barWidth}
-              darkMode={darkMode}
-            />
-          </div>
+          <div
+            key={contentKey}
+            className="w-full flex flex-col items-center justify-center gap-6 mt-6 max-w-xl mx-auto text-center"
+          >
+            {latestPrice && (
+              <div
+                className={`mb-4 px-4 py-2 rounded-md border text-center text-sm font-mono transition-all duration-300 ${
+                  darkMode
+                    ? "bg-zinc-800 text-zinc-100 border-zinc-700"
+                    : "bg-white text-zinc-800 border-zinc-300"
+                }`}
+              >
+                <p>
+                  Latest Price for <span className="font-bold">{ticker.toUpperCase()}</span>:{" "}
+                  <span className="mx-1 text-emerald-400">${latestPrice.close.toFixed(2)}</span>
+                  <span className="text-xs text-zinc-400">
+                    ({new Date(latestPrice.date).toLocaleTimeString()})
+                  </span>
+                </p>
+              </div>
+            )}
 
-          <div className="w-full animate-fadeInDelayed1">
-            <PredictionHistory
-              history={history}
-              setHistory={setHistory}
-              darkMode={darkMode}
-            />
-          </div>
+            <div className="w-full animate-fadeIn">
+              <SignalSummary
+                result={result}
+                animatedConfidence={animatedConfidence}
+                barWidth={barWidth}
+                darkMode={darkMode}
+              />
+            </div>
 
-          <div className="w-full animate-fadeInDelayed2">
-            <ChartDisplay
-              chartRef={chartRef}
-              showCandles={showCandles}
-              darkMode={darkMode}
-              lineChartData={lineChartData}
-              showSMA={showSMA}
-              showEMAs={showEMAs}
-              showRSI={showRSI}
-              priceData={priceData}
-              histError={histError}
-            />
-          </div>
-        </div>
-      )}
+            <div className="w-full animate-fadeInDelayed1">
+              <PredictionHistory
+                history={history}
+                setHistory={setHistory}
+                darkMode={darkMode}
+              />
+            </div>
 
+            <div className="w-full animate-fadeInDelayed2">
+              <ChartDisplay
+                chartRef={chartRef}
+                showCandles={showCandles}
+                darkMode={darkMode}
+                lineChartData={lineChartData}
+                showSMA={showSMA}
+                showEMAs={showEMAs}
+                showRSI={showRSI}
+                priceData={priceData}
+                histError={histError}
+              />
+            </div>
+          </div>
+        )}
 
         <LatticeControls
           ticker={ticker}
           setTicker={setTicker}
-          getSignal={getSignal}
+          getSignal={handleSignalFetch}
           range={range}
           setRange={setRange}
           showCandles={showCandles}
@@ -212,6 +239,7 @@ export default function App() {
     </div>
   );
 }
+
 
 
 

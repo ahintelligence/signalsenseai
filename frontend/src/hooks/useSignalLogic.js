@@ -12,7 +12,7 @@ export function useSignalLogic() {
   const [histError, setHistError] = useState(null);
   const prevTicker = useRef("");
 
-  const getSignal = async (symbolInput) => {
+  const getSignal = async (symbolInput, onComplete) => {
     const symbol = typeof symbolInput === "string" ? symbolInput : ticker;
   
     if (!symbol || typeof symbol !== "string") {
@@ -20,25 +20,31 @@ export function useSignalLogic() {
       return;
     }
   
+    setLoading(true); // ← make sure loading starts here
+  
     try {
       const res = await fetch(`/predict/${symbol.toUpperCase()}`);
-        const text = await res.text(); // <— first get raw text
-        console.log("🧾 Raw response text:", text);
-        
-        const data = JSON.parse(text); // <— manually parse
-      
-        setResult(data);
-      
-        if (!data.error) setHistory((prev) => [...prev, data]);
-        await fetchHistory(symbol, range);
-      } catch (err) {
-        console.error("Error in getSignal:", err);
-        setResult({ error: "Failed to fetch signal." });
-      } finally {
-        setLoading(false); // ← This must always run
+      const text = await res.text();
+      console.log("🧾 Raw response text:", text);
+  
+      const data = JSON.parse(text);
+      setResult(data);
+  
+      if (!data.error) setHistory((prev) => [...prev, data]);
+      await fetchHistory(symbol, range);
+  
+      // ✅ Trigger animation-ready logic
+      if (typeof onComplete === "function") {
+        onComplete();
       }
-      
+    } catch (err) {
+      console.error("Error in getSignal:", err);
+      setResult({ error: "Failed to fetch signal." });
+    } finally {
+      setLoading(false);
+    }
   };
+  
 
   const fetchHistory = async (symbol, selectedRange) => {
     try {
