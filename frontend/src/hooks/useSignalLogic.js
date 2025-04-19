@@ -14,55 +14,72 @@ export function useSignalLogic() {
 
   const getSignal = async (symbolInput, onComplete) => {
     const symbol = typeof symbolInput === "string" ? symbolInput : ticker;
-  
+
     if (!symbol || typeof symbol !== "string") {
-      console.error("❌ Invalid ticker symbol");
-      return;
+      const err = { error: "Please enter a valid ticker symbol." };
+      setResult(err);
+      return err;
     }
-  
-    setLoading(true); // ← make sure loading starts here
-  
+
+    setLoading(true);
+
     try {
       const res = await fetch(`/predict/${symbol.toUpperCase()}`);
       const text = await res.text();
-      console.log("🧾 Raw response text:", text);
-  
+
+      if (!res.ok) {
+        let message = "An unknown error occurred.";
+        if (res.status === 404) {
+          message = `No data found for "${symbol.toUpperCase()}". The stock might be delisted or invalid.`;
+        } else if (res.status >= 500) {
+          message = "Server error. Please try again later.";
+        }
+
+        const err = { error: message };
+        setResult(err);
+        return err;
+      }
+
       const data = JSON.parse(text);
       setResult(data);
-  
-      if (!data.error) setHistory((prev) => [...prev, data]);
-      await fetchHistory(symbol, range);
-  
-      // ✅ Trigger animation-ready logic
-      if (typeof onComplete === "function") {
-        onComplete();
+
+      if (!data.error) {
+        setHistory((prev) => [...prev, data]);
       }
+
+      await fetchHistory(symbol, range);
+
+      if (typeof onComplete === "function") onComplete();
+
+      return data;
     } catch (err) {
       console.error("Error in getSignal:", err);
-      setResult({ error: "Failed to fetch signal." });
+      const fallback = {
+        error: "Something went wrong. Please check your connection or try again.",
+      };
+      setResult(fallback);
+      return fallback;
     } finally {
       setLoading(false);
     }
   };
-  
 
   const fetchHistory = async (symbol, selectedRange) => {
     try {
-      const res = await fetch(`/history/${symbol.toUpperCase()}?range=${selectedRange}`);
+      const res = await fetch(`/history/${symbol}?range=${selectedRange}`);
       const json = await res.json();
-      if (!res.ok) {
-        setHistError(json.error || `Error ${res.status}`);
-        setPriceData(json.history || []);
-      } else {
-        setHistError(null);
-        setPriceData(json.history || []);
+
+      if (!res.ok || !json.history) {
+        throw new Error(json?.error || "Failed to load chart history.");
       }
+
+      setHistError(null);
+      setPriceData(json.history);
     } catch (e) {
       setHistError(e.message);
       setPriceData([]);
     }
   };
-  
 
   useEffect(() => {
     if (result && !result.error && result.ticker !== prevTicker.current) {
@@ -70,25 +87,29 @@ export function useSignalLogic() {
       requestAnimationFrame(() =>
         requestAnimationFrame(() => setBarWidth(result.confidence))
       );
+
       let start = 0;
       const end = result.confidence;
       const steps = Math.ceil(900 / 25);
       const inc = end / steps;
+
       const timer = setInterval(() => {
         start += inc;
         setAnimatedConfidence(Math.min(end, Math.round(start)));
         if (start >= end) clearInterval(timer);
       }, 25);
+
       prevTicker.current = result.ticker;
       return () => clearInterval(timer);
     }
   }, [result]);
+
   useEffect(() => {
-    if (ticker) {
-      fetchHistory(ticker, range);
+    if (prevTicker.current) {
+      fetchHistory(prevTicker.current, range);
     }
   }, [range]);
-  
+
   return {
     ticker,
     setTicker,
@@ -106,5 +127,7 @@ export function useSignalLogic() {
     getSignal,
     histError,
   };
-  
 }
+
+  
+

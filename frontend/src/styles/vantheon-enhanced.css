@@ -1,0 +1,55 @@
+
+/* styles/vantheon-enhanced.css */
+
+.framed-box {
+    border: 1px dotted #52525b;
+    border-radius: 0px;
+    background-color: #18181b;
+    padding: 1.5rem;
+    color: #e4e4e7;
+  }
+  
+  .framed-box h2, .framed-box h3 {
+    color: #f4f4f5;
+  }
+  
+  .framed-box p, .framed-box span, .framed-box li {
+    font-size: 0.875rem;
+    color: #d4d4d8;
+    font-family: 'Exo 2', sans-serif;
+  }
+  
+  .framed-box strong {
+    color: #ffffff;
+  }
+  
+  .framed-box .signal-bar {
+    height: 0.75rem;
+    margin-top: 0.5rem;
+    border-radius: 0px;
+  }
+  
+  .mono-label {
+    font-family: 'Roboto Mono', monospace;
+    font-size: 0.75rem;
+    color: #a1a1aa;
+  }
+  
+  .tooltip {
+    position: absolute;
+    bottom: 100%;
+    margin-bottom: 0.25rem;
+    display: none;
+    font-size: 0.75rem;
+    background-color: #27272a;
+    color: #e4e4e7;
+    padding: 0.25rem 0.5rem;
+    z-index: 10;
+    white-space: nowrap;
+    border-radius: 0px;
+  }
+  
+  .group:hover .tooltip {
+    display: block;
+  }
+  

@@ -6,7 +6,7 @@ def explain_signal(df):
     explanation_parts = []
 
     rsi = latest['RSI'].item() if hasattr(latest['RSI'], 'item') else latest['RSI']
-    sma = latest['SMA_50'].item() if hasattr(latest['SMA_50'], 'item') else latest['SMA_50']
+    sma = latest['SMA_20'].item() if hasattr(latest['SMA_20'], 'item') else latest['SMA_20']
     macd = latest['MACD'].item() if hasattr(latest['MACD'], 'item') else latest['MACD']
     close = latest['Close'].item() if hasattr(latest['Close'], 'item') else latest['Close']
 
@@ -22,11 +22,12 @@ def explain_signal(df):
         explanation_parts.append(f"The RSI is {rsi:.1f}, in a neutral range.")
 
     if close > sma:
-        explanation_parts.append(f"Price is above the 50-day average ({sma:.2f}), indicating bullish momentum.")
+        explanation_parts.append(f"Price is above the 20-day SMA ({sma:.2f}), indicating bullish momentum.")
         score += 1
     else:
-        explanation_parts.append(f"Price is below the 50-day average ({sma:.2f}), indicating bearish momentum.")
+        explanation_parts.append(f"Price is below the 20-day SMA ({sma:.2f}), indicating bearish momentum.")
         score -= 1
+
 
     if macd > 0:
         explanation_parts.append(f"MACD is positive ({macd:.2f}), confirming upward trend.")
@@ -44,7 +45,7 @@ def explain_signal(df):
 
     return summary + " " + " ".join(explanation_parts)
 
-# ✅ New function for frontend charting
+# function for frontend charting
 def get_stock_history(ticker):
     df = yf.download(ticker, period="6mo", interval="1d")
     df = df[['Close']].dropna()

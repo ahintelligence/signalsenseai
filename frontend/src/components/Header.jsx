@@ -1,25 +1,32 @@
-
-// src/components/Header.jsx
 import React from "react";
 
 function flipA(text) {
-    return text.replace(/A/g, 'Ʌ');
-  }
+  return text.replace(/A/g, 'Ʌ');
+}
 
-export default function Header({ darkMode, toggleDarkMode }) {
-    return (
-      <header className="px-6 py-4 bg-black text-gray-100 flex justify-between items-center">
-        <h1 className="text-xl font-semibold tracking-tight">
+export default function Header({ darkMode, toggleDarkMode, onOpenGlossary }) {
+  return (
+    <header className="px-6 py-4 bg-black text-zinc-100 flex justify-between items-center border-b border-zinc-800">
+      <h1 className="text-xl font-semibold tracking-tight">
         {flipA("Lattice | VANTHEON")}
-        </h1>
+      </h1>
 
+      <div className="flex items-center gap-2">
         <button
           onClick={toggleDarkMode}
-          className="px-4 py-2 rounded bg-zinc-800 text-gray-300 hover:bg-zinc-700 transition"
+          className="px-3 py-1 border border-dotted text-sm hover:border-white hover:text-white transition"
         >
           {darkMode ? "Light" : "Dark"}
         </button>
-      </header>
-    );
-  }
+        <button
+          onClick={onOpenGlossary}
+          className="px-3 py-1 border border-dotted text-sm hover:border-white hover:text-white transition"
+        >
+          Glossary
+        </button>
+      </div>
+    </header>
+  );
+}
+
   

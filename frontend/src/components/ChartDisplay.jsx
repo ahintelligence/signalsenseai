@@ -1,165 +1,123 @@
-// src/components/ChartDisplay.jsx
 import { useEffect } from "react";
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  Tooltip as RechartsTooltip,
-  CartesianGrid,
-  ResponsiveContainer,
-} from "recharts";
-import { createChart } from "lightweight-charts";
+import { createChart, CrosshairMode } from "lightweight-charts";
 
 export default function ChartDisplay({
   chartRef,
-  showCandles,
-  darkMode,
-  lineChartData,
+  candleData = [],
+  smaData = [],
+  emaSeries = [],
+  rsiData = [],
   showSMA,
-  showEMAs,
   showRSI,
-  priceData,
+  enlarged,
+  darkMode,
   histError,
 }) {
-    useEffect(() => {
-        if (!showCandles || !chartRef.current) return;
-      
-        chartRef.current.innerHTML = "";
-      
-        const chart = createChart(chartRef.current, {
-          layout: {
-            background: { color: darkMode ? "#111827" : "#f3f4f6" },
-            textColor: darkMode ? "#f3f4f6" : "#111827",
-          },
-          grid: {
-            vertLines: { color: darkMode ? "#374151" : "#e5e7eb" },
-            horzLines: { color: darkMode ? "#374151" : "#e5e7eb" },
-          },
-          width: chartRef.current.clientWidth,
-          height: 250,
-          crosshair: { mode: 0 },
-        });
-      
-        const candleData = priceData
-          .map(d => ({
-            time: Math.floor(new Date(d.date).getTime() / 1000),
-            open: +d.open,
-            high: +d.high,
-            low: +d.low,
-            close: +d.close,
-          }))
-          .filter(d => !isNaN(d.open));
-      
-        chart.addCandlestickSeries().setData(candleData);
-      
-        if (showSMA) {
-          const smaData = priceData
-            .filter(d => d.sma20 !== null && d.sma20 !== undefined && !isNaN(+d.sma20))
-            .map(d => ({
-              time: Math.floor(new Date(d.date).getTime() / 1000),
-              value: +d.sma20,
-            }));
-      
-          if (smaData.length > 1) {
-            // Small debounce to wait for layout before drawing
-            setTimeout(() => {
-              chart.addLineSeries({ color: "#f59e0b", lineWidth: 2 }).setData(smaData);
-            }, 100);
-          }
-        }
-      
-        Object.entries(showEMAs).forEach(([key, show]) => {
-          if (show) {
-            const emaData = priceData
-              .filter(d => d[key] !== null && d[key] !== undefined && !isNaN(+d[key]))
-              .map(d => ({
-                time: Math.floor(new Date(d.date).getTime() / 1000),
-                value: +d[key],
-              }));
-      
-            if (emaData.length > 1) {
-              setTimeout(() => {
-                chart.addLineSeries({ color: getEmaColor(key), lineWidth: 2 }).setData(emaData);
-              }, 100);
-            }
-          }
-        });
-      
-        chart.timeScale().fitContent();
-      
-        return () => chart.remove();
-      }, [priceData, showCandles, showSMA, showEMAs, darkMode]);
-      
+  useEffect(() => {
+    if (!chartRef.current || candleData.length === 0) return;
+
+    // Clear previous chart
+    chartRef.current.innerHTML = "";
+
+    const width = chartRef.current.clientWidth;
+    const height = chartRef.current.clientHeight;
+
+    // Create chart with dynamic size
+    const chart = createChart(chartRef.current, {
+      width,
+      height,
+      layout: {
+        background: { color: darkMode ? "#0f172a" : "#ffffff" },
+        textColor: darkMode ? "#e2e8f0" : "#1e293b",
+      },
+      grid: {
+        vertLines: { color: darkMode ? "#374151" : "#e5e7eb" },
+        horzLines: { color: darkMode ? "#374151" : "#e5e7eb" },
+      },
+      crosshair: { mode: CrosshairMode.Normal },
+      rightPriceScale: { borderColor: darkMode ? "#475569" : "#cbd5e1" },
+      timeScale: { borderColor: darkMode ? "#475569" : "#cbd5e1" },
+    });
+
+    // Candlestick series
+    chart
+      .addCandlestickSeries({
+        upColor: "#16a34a",
+        downColor: "#dc2626",
+        borderUpColor: "#16a34a",
+        borderDownColor: "#dc2626",
+        wickUpColor: "#16a34a",
+        wickDownColor: "#dc2626",
+      })
+      .setData(candleData);
+
+    // SMA overlay
+    if (showSMA && smaData.length) {
+      chart.addLineSeries({ color: "#f59e0b", lineWidth: 2 }).setData(smaData);
+    }
+
+    // EMA overlays
+    emaSeries.forEach(({ key, data }) => {
+      if (data.length) {
+        const colorMap = {
+          ema9: "#f97316",
+          ema20: "#3b82f6",
+          ema50: "#10b981",
+          ema100: "#ec4899",
+          ema200: "#8b5cf6",
+        };
+        chart
+          .addLineSeries({ color: colorMap[key] || "#999", lineWidth: 2 })
+          .setData(data);
+      }
+    });
+
+    // RSI overlay in bottom 20%
+    if (showRSI && rsiData.length) {
+      chart
+        .addLineSeries({
+          color: "#a3e635",
+          lineWidth: 1,
+          priceScaleId: "",
+          scaleMargins: { top: 0.8, bottom: 0 },
+        })
+        .setData(rsiData);
+    }
+
+    chart.timeScale().fitContent();
+    return () => chart.remove();
+  }, [
+    candleData,
+    smaData,
+    emaSeries,
+    rsiData,
+    showSMA,
+    showRSI,
+    darkMode,
+    enlarged,
+  ]);
 
   return (
-    <div className="w-full max-w-xl mt-4">
-      {histError && <p className="text-red-400 mb-4">Error: {histError}</p>}
-
-      {priceData.length > 0 && (
-        <>
-          {showCandles ? (
-            <div ref={chartRef} className="w-full" style={{ height: 250 }} />
-          ) : (
-            <ResponsiveContainer width="100%" height={250}>
-              <LineChart data={lineChartData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="Date" tick={{ fontSize: 10 }} />
-                <YAxis domain={["auto", "auto"]} tick={{ fontSize: 10 }} />
-                <RechartsTooltip />
-                <Line
-                  type="monotone"
-                  dataKey="Close"
-                  stroke={darkMode ? "#d1d5db" : "#374151"}
-                  strokeWidth={2}
-                  isAnimationActive={true}
-                  animationDuration={800}
-                />
-                {showSMA && (
-                  <Line
-                    type="monotone"
-                    dataKey="SMA20"
-                    stroke="#f59e0b"
-                    strokeWidth={2}
-                    dot={false}
-                    isAnimationActive={true}
-                    animationDuration={800}
-                  />
-                )}
-                {Object.entries(showEMAs).map(
-                  ([k, v]) =>
-                    v && (
-                      <Line
-                        key={k}
-                        type="monotone"
-                        dataKey={k}
-                        stroke={getEmaColor(k)}
-                        strokeWidth={2}
-                        dot={false}
-                        isAnimationActive={true}
-                        animationDuration={800}
-                      />
-                    )
-                )}
-              </LineChart>
-            </ResponsiveContainer>
-          )}
-        </>
-      )}
+    <div
+      className={`w-full h-full transition-all duration-500 ${
+        darkMode ? "bg-zinc-900 text-zinc-200" : "bg-white text-zinc-800"
+      }`}
+      style={{
+        border: "1px solid",
+        borderColor: darkMode ? "#475569" : "#cbd5e1",
+        borderRadius: "4px",
+      }}
+    >
+      {histError && <p className="text-red-400 p-4">Error: {histError}</p>}
+      <div ref={chartRef} className="w-full h-full" />
     </div>
   );
 }
 
-function getEmaColor(key) {
-  const map = {
-    ema9: "#f97316",   // orange-500
-    ema20: "#3b82f6",  // blue-500
-    ema50: "#10b981",  // green-500
-    ema100: "#ec4899", // pink-500
-    ema200: "#8b5cf6", // violet-500
-  };
-  return map[key] || "#999";
-}
+
+
+
+
 
 
 
