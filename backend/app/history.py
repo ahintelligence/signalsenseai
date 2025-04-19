@@ -1,5 +1,6 @@
 import yfinance as yf
 import pandas as pd
+import ta
 from fastapi.responses import JSONResponse
 import traceback
 
@@ -70,10 +71,26 @@ def get_price_history(ticker: str, range: str = "1mo"):
         rs = avg_gain / avg_loss
         df["rsi"] = (100 - (100 / (1 + rs))).round(2)
 
-        # 9) Backfill any NaNs from rolling/ewm
+        # 9. ATR (14‑period)
+        df["atr14"] = ta.volatility.average_true_range(
+            df["high"], df["low"], df["close"], window=14
+        ).round(2)
+
+        # 10. Bollinger Bands (20‑period)
+        bb = ta.volatility.BollingerBands(df["close"], window=20, window_dev=2)
+        df["bb_upper"] = bb.bollinger_hband().round(2)
+        df["bb_mid"]   = bb.bollinger_mavg().round(2)
+        df["bb_lower"] = bb.bollinger_lband().round(2)
+
+        # 11. Regime flag: high volatility when ATR > rolling median
+        df["vol_regime"] = (
+            df["atr14"] > df["atr14"].rolling(50).median()
+        ).astype(int)
+
+        # 12) Backfill any NaNs from rolling/ewm
         df = df.fillna(method="bfill").copy()
 
-        # 10) Serialize and respond
+        # 13) Serialize and respond
         history_records = df.to_dict(orient="records")
         return JSONResponse(
             content={
