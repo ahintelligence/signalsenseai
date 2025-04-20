@@ -260,7 +260,42 @@ def compare_models(tickers: list[str]) -> dict:
             "f1_score":  report["Buy"]["f1-score"],
         }
 
-    # Save JSON/CSV and optional bar plot omitted for brevity...
+    # --- save comparison.json ---
+    comp_json = os.path.join(METRICS_DIR, "comparison.json")
+    with open(comp_json, "w") as f:
+        json.dump(results, f, indent=4)
+    logger.info(f"[✓] Saved comparison JSON to {comp_json}")
+
+    # --- save comparison.csv ---
+    comp_csv = os.path.join(METRICS_DIR, "comparison.csv")
+    with open(comp_csv, "w", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow(["Ticker", "Accuracy", "Precision", "Recall", "F1 Score"])
+        for t, m in results.items():
+            writer.writerow([t, m["accuracy"], m["precision"], m["recall"], m["f1_score"]])
+    logger.info(f"[✓] Saved comparison CSV to {comp_csv}")
+
+    # --- optional bar‐plot ---
+    try:
+        df = pd.DataFrame(results).T  # transpose so tickers are rows
+        ax = df.plot(
+            kind="bar",
+            figsize=(10, 6),
+            ylim=(0, 1),
+            rot=0,
+            title="Model Performance Comparison"
+        )
+        ax.set_ylabel("Score")
+        plt.tight_layout()
+
+        plot_path = os.path.join(METRICS_DIR, "comparison_plot.png")
+        plt.savefig(plot_path)
+        plt.close()
+        logger.info(f"[✓] Saved comparison plot to {plot_path}")
+    except Exception as e:
+        logger.warning(f"[!] Could not create comparison plot: {e}")
+
+        
     return results
 
 # -----------------------------------------------------------------------------
