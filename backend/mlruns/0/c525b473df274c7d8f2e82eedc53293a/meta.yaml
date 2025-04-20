@@ -1,0 +1,15 @@
+artifact_uri: mlflow-artifacts:/0/c525b473df274c7d8f2e82eedc53293a/artifacts
+end_time: 1745176263983
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+run_id: c525b473df274c7d8f2e82eedc53293a
+run_name: able-skink-802
+run_uuid: c525b473df274c7d8f2e82eedc53293a
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1745176263350
+status: 3
+tags: []
+user_id: andrewhughes

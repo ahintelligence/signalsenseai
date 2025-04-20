@@ -19,6 +19,10 @@ from sklearn.linear_model import LogisticRegression
 import lightgbm as lgb
 import mlflow
 import mlflow.sklearn
+from app.sentiment import get_news_sentiment_series, get_social_sentiment_series
+from pandas.api.types import is_datetime64_any_dtype as is_datetime
+
+
 
 mlflow.set_tracking_uri("http://127.0.0.1:5000")
 
@@ -86,46 +90,34 @@ def compute_rsi_momentum(df: pd.DataFrame, window: int = 14) -> pd.Series:
 
 # -----------------------------------------------------------------------------
 def generate_features(df: pd.DataFrame, rsi_window: int = 14, mfi_window: int = 14):
-    """
-    Takes raw OHLCV df and returns (X, y):
-      - X: engineered feature DataFrame
-      - y: target series (1 if price 3 days ahead > today)
-    """
     df = df.copy(deep=True)
 
-    # ensure OHLCV
-    required = ["Open","High","Low","Close","Volume"]
+    # Validate core structure
+    required = ["Open", "High", "Low", "Close", "Volume"]
     if not all(col in df.columns for col in required):
-        raise ValueError("Missing required OHLCV columns in input DataFrame")
+        raise ValueError("Missing required OHLCV columns")
 
-    # basic return & target
-    df["RETURN"] = df["Close"].pct_change()
-    df["TARGET"] = (df["Close"].shift(-3) > df["Close"]).astype(int)
-
-    # technicals
-    df["RSI"]          = compute_rsi(df["Close"], rsi_window)
-    df["MACD"]         = compute_smoothed_macd(df)
-    df["RSI_MOMENTUM"] = compute_rsi_momentum(df, rsi_window)
-    df["SMA_20"]       = df["Close"].rolling(20).mean().round(4)
-    df["EMA_10"]       = df["Close"].ewm(span=10, adjust=False).mean().round(4)
-    df["EMA_50"]       = df["Close"].ewm(span=50, adjust=False).mean().round(4)
-    df["ATR14"]        = compute_true_range(df).rolling(14).mean().round(4)
+    # Target & indicators
+    df["RETURN"]        = df["Close"].pct_change()
+    df["TARGET"]        = (df["Close"].shift(-3) > df["Close"]).astype(int)
+    df["RSI"]           = compute_rsi(df["Close"], rsi_window)
+    df["MACD"]          = compute_smoothed_macd(df)
+    df["RSI_MOMENTUM"]  = compute_rsi_momentum(df, rsi_window)
+    df["SMA_20"]        = df["Close"].rolling(20).mean().round(4)
+    df["EMA_10"]        = df["Close"].ewm(span=10).mean().round(4)
+    df["EMA_50"]        = df["Close"].ewm(span=50).mean().round(4)
+    df["ATR14"]         = compute_true_range(df).rolling(14).mean().round(4)
 
     mid = df["Close"].rolling(20).mean()
     std = df["Close"].rolling(20).std()
     df["BB_MID"]   = mid.round(4)
     df["BB_UPPER"] = (mid + 2 * std).round(4)
     df["BB_LOWER"] = (mid - 2 * std).round(4)
+    df["VOL_REGIME"] = (df["ATR14"] > df["ATR14"].rolling(50).median()).astype(int)
 
-    df["VOL_REGIME"] = (
-        df["ATR14"] > df["ATR14"].rolling(50).median()
-    ).astype(int)
-
-    # On‑Balance Volume
     direction = np.sign(df["Close"].diff().fillna(0))
     df["OBV"] = (direction * df["Volume"]).cumsum().round(4)
 
-    # Money Flow Index (manual, guaranteed 1‑D)
     tp = (df["High"] + df["Low"] + df["Close"]) / 3.0
     mf = tp * df["Volume"]
     pos_mf = mf.where(tp > tp.shift(1), 0.0)
@@ -133,17 +125,43 @@ def generate_features(df: pd.DataFrame, rsi_window: int = 14, mfi_window: int = 
     mf_ratio = pos_mf.rolling(mfi_window).sum() / neg_mf.rolling(mfi_window).sum()
     df["MFI"] = (100 - 100 / (1 + mf_ratio)).round(4)
 
-    # drop NaN/inf
-    df = df.replace([np.inf, -np.inf], np.nan).dropna()
+    # Prepare reindexing keys
+    if not is_datetime(df.index):
+        df.index = pd.to_datetime(df.index)
+    date_index = pd.to_datetime(df.index.date)
+
+    # SOCIAL
+    social_sent = get_social_sentiment_series("AAPL", days=7)
+    if social_sent.empty:
+        logger.warning("No social sentiment — using zeros")
+        df["SOCIAL_SENTIMENT"] = 0.0
+    else:
+        s = social_sent.reindex(date_index).ffill().bfill().values
+        df["SOCIAL_SENTIMENT"] = s
+
+    # NEWS
+    news_sent = get_news_sentiment_series("AAPL", days=7)
+    if news_sent.empty:
+        logger.warning("No news sentiment — using zeros")
+        df["NEWS_SENTIMENT"] = 0.0
+    else:
+        s = news_sent.reindex(date_index).ffill().bfill().values
+        df["NEWS_SENTIMENT"] = s
+
+    # Drop garbage
+    df.replace([np.inf, -np.inf], np.nan, inplace=True)
+    df.dropna(inplace=True)
+
+    if len(df) < 10:
+        logger.warning("After feature + sentiment engineering, not enough rows left.")
 
     features = [
-      "Open","High","Low","Close","Volume",
-      "RETURN","RSI","MACD","SMA_20","EMA_10","EMA_50",
-      "ATR14","BB_UPPER","BB_MID","BB_LOWER",
-      "VOL_REGIME","OBV","MFI",
+        "Open", "High", "Low", "Close", "Volume", "RETURN", "RSI", "MACD",
+        "SMA_20", "EMA_10", "EMA_50", "ATR14", "BB_UPPER", "BB_MID", "BB_LOWER",
+        "VOL_REGIME", "OBV", "MFI", "NEWS_SENTIMENT", "SOCIAL_SENTIMENT"
     ]
-
     return df[features], df["TARGET"]
+
 
 
 # -----------------------------------------------------------------------------
