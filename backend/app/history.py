@@ -88,7 +88,7 @@ def get_price_history(ticker: str, range: str = "1mo"):
         ).astype(int)
 
         # 12) Backfill any NaNs from rolling/ewm
-        df = df.fillna(method="bfill").copy()
+        df = df.bfill().copy()
 
         # 13) Serialize and respond
         history_records = df.to_dict(orient="records")

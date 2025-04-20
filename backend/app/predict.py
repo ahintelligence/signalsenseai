@@ -1,55 +1,51 @@
 from fastapi import HTTPException, Depends
 from fastapi.responses import JSONResponse
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+
 from app.model import load_model, generate_features
 from app.data import get_stock_data
 from app.explain import explain_signal
 
-# Simple bearer‑token guard
+# Set up token-based auth
 bearer = HTTPBearer()
+
 def require_token(creds: HTTPAuthorizationCredentials = Depends(bearer)):
     if creds.credentials != "YOUR_SECRET_TOKEN":
-        raise HTTPException(401, "Invalid token")
+        raise HTTPException(status_code=401, detail="Invalid token")
     return True
 
 def get_prediction(ticker: str, _=Depends(require_token)):
-    # 1) Load data & features
+    # Fetch stock data
     df = get_stock_data(ticker)
-    if not df or df.empty:
-        raise HTTPException(404, f"No data for '{ticker.upper()}'")
+    if df is None or df.empty:
+        raise HTTPException(status_code=404, detail=f"No data for '{ticker.upper()}'")
+
+    # Generate features
     X, _ = generate_features(df)
     if X.empty:
-        raise HTTPException(400, "Not enough data to compute features")
+        raise HTTPException(status_code=400, detail="Not enough data to compute features")
 
-    # 2) Predict
+    # Load model
     model = load_model(ticker)
+
+    # Get last row for prediction
     row = X.iloc[[-1]].values
     pred = model.predict(row)[0]
     proba = model.predict_proba(row)[0][int(pred)]
-    confidence = round(float(proba)*100, 2)
+    confidence = round(float(proba) * 100, 2)
 
-    # 3) Explain
+    # SHAP explanation
     try:
         explanation = explain_signal(X)
     except Exception:
         explanation = "No explanation available."
 
-    # 4) Return
+    # Response payload
     return JSONResponse({
         "ticker": ticker.upper(),
         "signal": "Buy" if pred else "Hold/Sell",
         "confidence": confidence,
         "explanation": explanation
     })
-
-
-
-
-
-
-
-
- 
-
 
 
