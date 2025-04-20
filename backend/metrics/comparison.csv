@@ -1,0 +1,4 @@
+Ticker,Accuracy,Precision,Recall,F1 Score
+AAPL,0.9048,0.9167,0.9167,0.9167
+TSLA,0.7619,0.8571,0.6,0.7059
+MSFT,0.7619,0.8571,0.6,0.7059

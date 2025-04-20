@@ -1,0 +1,15 @@
+artifact_uri: mlflow-artifacts:/0/3d8ef5a8019a42b4a6c6927037fd1233/artifacts
+end_time: 1745157393953
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+run_id: 3d8ef5a8019a42b4a6c6927037fd1233
+run_name: whimsical-bear-70
+run_uuid: 3d8ef5a8019a42b4a6c6927037fd1233
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1745157393636
+status: 4
+tags: []
+user_id: ghost

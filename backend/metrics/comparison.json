@@ -1,0 +1,20 @@
+{
+    "AAPL": {
+        "accuracy": 0.9048,
+        "precision": 0.9167,
+        "recall": 0.9167,
+        "f1_score": 0.9167
+    },
+    "TSLA": {
+        "accuracy": 0.7619,
+        "precision": 0.8571,
+        "recall": 0.6,
+        "f1_score": 0.7059
+    },
+    "MSFT": {
+        "accuracy": 0.7619,
+        "precision": 0.8571,
+        "recall": 0.6,
+        "f1_score": 0.7059
+    }
+}

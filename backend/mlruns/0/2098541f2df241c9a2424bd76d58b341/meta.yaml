@@ -1,0 +1,15 @@
+artifact_uri: mlflow-artifacts:/0/2098541f2df241c9a2424bd76d58b341/artifacts
+end_time: 1745157448100
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+run_id: 2098541f2df241c9a2424bd76d58b341
+run_name: unruly-kite-905
+run_uuid: 2098541f2df241c9a2424bd76d58b341
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1745157447872
+status: 4
+tags: []
+user_id: ghost
