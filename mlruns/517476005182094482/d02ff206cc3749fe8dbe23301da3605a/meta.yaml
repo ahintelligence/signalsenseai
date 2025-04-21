@@ -1,0 +1,15 @@
+artifact_uri: mlflow-artifacts:/517476005182094482/d02ff206cc3749fe8dbe23301da3605a/artifacts
+end_time: 1745198260698
+entry_point_name: ''
+experiment_id: '517476005182094482'
+lifecycle_stage: active
+run_id: d02ff206cc3749fe8dbe23301da3605a
+run_name: upbeat-stag-739
+run_uuid: d02ff206cc3749fe8dbe23301da3605a
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1745198252315
+status: 3
+tags: []
+user_id: ghost

@@ -1,0 +1,15 @@
+artifact_uri: mlflow-artifacts:/0/402ba0e621a74879bc982787caac7f9a/artifacts
+end_time: 1745198252251
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+run_id: 402ba0e621a74879bc982787caac7f9a
+run_name: charming-midge-432
+run_uuid: 402ba0e621a74879bc982787caac7f9a
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1745198249092
+status: 3
+tags: []
+user_id: ghost

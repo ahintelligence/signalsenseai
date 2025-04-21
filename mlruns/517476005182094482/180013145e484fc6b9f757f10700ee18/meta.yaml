@@ -1,0 +1,15 @@
+artifact_uri: mlflow-artifacts:/517476005182094482/180013145e484fc6b9f757f10700ee18/artifacts
+end_time: 1745202123432
+entry_point_name: ''
+experiment_id: '517476005182094482'
+lifecycle_stage: active
+run_id: 180013145e484fc6b9f757f10700ee18
+run_name: adaptable-kite-212
+run_uuid: 180013145e484fc6b9f757f10700ee18
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1745202118407
+status: 3
+tags: []
+user_id: ghost

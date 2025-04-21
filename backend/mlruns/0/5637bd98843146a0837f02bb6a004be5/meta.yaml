@@ -1,0 +1,15 @@
+artifact_uri: mlflow-artifacts:/0/5637bd98843146a0837f02bb6a004be5/artifacts
+end_time: 1745193988119
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+run_id: 5637bd98843146a0837f02bb6a004be5
+run_name: spiffy-dog-370
+run_uuid: 5637bd98843146a0837f02bb6a004be5
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1745193987972
+status: 3
+tags: []
+user_id: ghost

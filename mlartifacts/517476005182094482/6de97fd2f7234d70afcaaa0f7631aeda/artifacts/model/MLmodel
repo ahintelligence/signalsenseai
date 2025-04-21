@@ -1,0 +1,46 @@
+artifact_path: model
+flavors:
+  python_function:
+    env:
+      conda: conda.yaml
+      virtualenv: python_env.yaml
+    loader_module: mlflow.sklearn
+    model_path: model.pkl
+    predict_fn: predict
+    python_version: 3.13.3
+  sklearn:
+    code: null
+    pickled_model: model.pkl
+    serialization_format: cloudpickle
+    sklearn_version: 1.6.1
+is_signature_from_type_hint: false
+mlflow_version: 2.21.3
+model_size_bytes: 536787
+model_uuid: 2e47bb3930d24866a1873f797b4d8d74
+prompts: null
+run_id: 6de97fd2f7234d70afcaaa0f7631aeda
+saved_input_example_info:
+  artifact_path: input_example.json
+  pandas_orient: split
+  serving_input_path: serving_input_example.json
+  type: dataframe
+signature:
+  inputs: '[{"type": "double", "name": "Open_AAPL", "required": true}, {"type": "double",
+    "name": "High_AAPL", "required": true}, {"type": "double", "name": "Low_AAPL",
+    "required": true}, {"type": "double", "name": "Close_AAPL", "required": true},
+    {"type": "double", "name": "Volume_AAPL", "required": true}, {"type": "double",
+    "name": "RETURN", "required": true}, {"type": "double", "name": "RSI", "required":
+    true}, {"type": "double", "name": "RSI_MOMENTUM", "required": true}, {"type":
+    "double", "name": "MACD", "required": true}, {"type": "double", "name": "SMA_20",
+    "required": true}, {"type": "double", "name": "EMA_10", "required": true}, {"type":
+    "double", "name": "EMA_50", "required": true}, {"type": "double", "name": "ATR14",
+    "required": true}, {"type": "double", "name": "BB_MID", "required": true}, {"type":
+    "double", "name": "BB_UPPER", "required": true}, {"type": "double", "name": "BB_LOWER",
+    "required": true}, {"type": "double", "name": "VOL_REGIME", "required": true},
+    {"type": "double", "name": "OBV", "required": true}, {"type": "double", "name":
+    "MFI", "required": true}, {"type": "double", "name": "SOCIAL_SENTIMENT", "required":
+    true}, {"type": "double", "name": "NEWS_SENTIMENT", "required": true}]'
+  outputs: '[{"type": "tensor", "tensor-spec": {"dtype": "int64", "shape": [-1]}}]'
+  params: null
+type_hint_from_example: false
+utc_time_created: '2025-04-21 02:11:54.199888'

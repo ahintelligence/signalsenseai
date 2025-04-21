@@ -1,0 +1,15 @@
+artifact_uri: mlflow-artifacts:/0/de0ce644b36446de9d535b34c7e3d93f/artifacts
+end_time: 1745200438422
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+run_id: de0ce644b36446de9d535b34c7e3d93f
+run_name: inquisitive-ox-511
+run_uuid: de0ce644b36446de9d535b34c7e3d93f
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1745200432304
+status: 3
+tags: []
+user_id: ghost

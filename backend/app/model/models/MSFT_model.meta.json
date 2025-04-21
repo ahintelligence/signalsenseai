@@ -1,0 +1,16 @@
+{
+  "ticker": "MSFT",
+  "timestamp": "2025-04-20T23:52:31.669575",
+  "n_estimators": 200,
+  "max_depth": 6,
+  "learning_rate": 0.05,
+  "test_size": 0.2,
+  "train_samples": 84,
+  "test_samples": 21,
+  "metrics": {
+    "accuracy": 1.0,
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1_score": 1.0
+  }
+}

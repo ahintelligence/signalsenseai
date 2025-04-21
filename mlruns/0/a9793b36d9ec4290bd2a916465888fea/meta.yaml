@@ -1,0 +1,15 @@
+artifact_uri: mlflow-artifacts:/0/a9793b36d9ec4290bd2a916465888fea/artifacts
+end_time: 1745201193010
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+run_id: a9793b36d9ec4290bd2a916465888fea
+run_name: angry-dog-427
+run_uuid: a9793b36d9ec4290bd2a916465888fea
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1745201188898
+status: 3
+tags: []
+user_id: ghost

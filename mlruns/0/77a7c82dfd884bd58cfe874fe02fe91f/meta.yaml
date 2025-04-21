@@ -1,0 +1,15 @@
+artifact_uri: mlflow-artifacts:/0/77a7c82dfd884bd58cfe874fe02fe91f/artifacts
+end_time: 1745195908865
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+run_id: 77a7c82dfd884bd58cfe874fe02fe91f
+run_name: upset-rat-358
+run_uuid: 77a7c82dfd884bd58cfe874fe02fe91f
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1745195906620
+status: 3
+tags: []
+user_id: ghost

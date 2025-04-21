@@ -2,6 +2,7 @@ from fastapi import FastAPI, Query, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
+from app.predict import router as predict_router
 import yfinance as yf
 import os
 import json
@@ -130,3 +131,5 @@ async def predict_data(request: PredictionRequest):
 
 # include any additional routers
 app.include_router(summary_router)
+app.include_router(predict_router)
+

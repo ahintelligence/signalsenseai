@@ -1,0 +1,15 @@
+artifact_uri: mlflow-artifacts:/0/f6e72dd13cee4d7b88934e2cb8dac115/artifacts
+end_time: null
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+run_id: f6e72dd13cee4d7b88934e2cb8dac115
+run_name: gifted-hog-983
+run_uuid: f6e72dd13cee4d7b88934e2cb8dac115
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1745193065274
+status: 1
+tags: []
+user_id: ghost

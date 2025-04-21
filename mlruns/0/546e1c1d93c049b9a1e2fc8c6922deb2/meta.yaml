@@ -1,0 +1,15 @@
+artifact_uri: mlflow-artifacts:/0/546e1c1d93c049b9a1e2fc8c6922deb2/artifacts
+end_time: 1745201366431
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+run_id: 546e1c1d93c049b9a1e2fc8c6922deb2
+run_name: treasured-bat-187
+run_uuid: 546e1c1d93c049b9a1e2fc8c6922deb2
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1745201364262
+status: 3
+tags: []
+user_id: ghost

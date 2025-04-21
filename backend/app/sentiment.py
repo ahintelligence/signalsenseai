@@ -4,9 +4,12 @@ import logging
 import requests
 import tweepy
 import numpy as np
-from textblob import TextBlob
+from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 import pandas as pd
 from datetime import datetime, timedelta
+
+analyzer = SentimentIntensityAnalyzer()
+
 
 # Setup
 logger = logging.getLogger(__name__)
@@ -62,7 +65,7 @@ def get_social_sentiment_series(query: str, days: int = 7, max_results: int = 10
         for tweet in paginator.flatten(limit=max_results):
             try:
                 if tweet.text:
-                    sentiment = TextBlob(tweet.text).sentiment.polarity
+                    sentiment = analyzer.polarity_scores(tweet.text)["compound"]
                     records.append({"date": tweet.created_at.date(), "sentiment": sentiment})
                     time.sleep(0.25)
             except Exception as inner:

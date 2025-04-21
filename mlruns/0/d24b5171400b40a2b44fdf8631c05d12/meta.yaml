@@ -1,0 +1,15 @@
+artifact_uri: mlflow-artifacts:/0/d24b5171400b40a2b44fdf8631c05d12/artifacts
+end_time: 1745196438983
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+run_id: d24b5171400b40a2b44fdf8631c05d12
+run_name: righteous-gnu-897
+run_uuid: d24b5171400b40a2b44fdf8631c05d12
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1745196436671
+status: 3
+tags: []
+user_id: ghost

@@ -1,0 +1,15 @@
+artifact_uri: mlflow-artifacts:/517476005182094482/48ed73b491cb40e594389e43accf5c63/artifacts
+end_time: 1745201741782
+entry_point_name: ''
+experiment_id: '517476005182094482'
+lifecycle_stage: active
+run_id: 48ed73b491cb40e594389e43accf5c63
+run_name: secretive-pug-401
+run_uuid: 48ed73b491cb40e594389e43accf5c63
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1745201736515
+status: 3
+tags: []
+user_id: ghost
