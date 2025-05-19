@@ -1,0 +1,15 @@
+artifact_uri: mlflow-artifacts:/0/d03866d0c82a4806b5310c27cd6e9ded/artifacts
+end_time: 1745234680640
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+run_id: d03866d0c82a4806b5310c27cd6e9ded
+run_name: omniscient-duck-317
+run_uuid: d03866d0c82a4806b5310c27cd6e9ded
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1745234676136
+status: 3
+tags: []
+user_id: ghost

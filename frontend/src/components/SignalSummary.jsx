@@ -27,7 +27,7 @@ export default function SignalSummary({ result, barWidth, animatedConfidence, da
 
       {/* Confidence */}
       <div className="mb-4">
-        <p className="text-sm text-zinc-500 mb-1">Signal Confidence</p>
+        <p className="text-sm text-zinc-500 mb-1">Model Confidence Level</p>
         <div className="w-full bg-zinc-700/40 h-3 rounded-none">
           <div
             className={`h-3 transition-all duration-700 ease-in-out ${getSignalBar()}`}
@@ -39,29 +39,33 @@ export default function SignalSummary({ result, barWidth, animatedConfidence, da
 
       {/* Explanation */}
       <div className="mt-4 text-sm text-zinc-400">
-        <h3 className="font-semibold mb-1">Explanation</h3>
-        {explanation.split('. ').map((sentence, idx) => {
-          const text = sentence.trim();
-          if (!text) return null;
-          const punctuated = text.endsWith('.') ? text : text + '.';
-          return (
-            <p key={idx} className="mb-2 leading-relaxed">
-              {punctuated}
-            </p>
-          );
-        })}
+        <h3 className="font-semibold mb-1">Model Rationale</h3>
+        {typeof explanation === 'string' && explanation
+        ? explanation.split('. ').map((sentence, idx) => {
+            const text = sentence.trim();
+            if (!text) return null;
+            const punctuated = text.endsWith('.') ? text : text + '.';
+            return (
+                <p key={idx} className="mb-2 leading-relaxed">
+                {punctuated}
+                </p>
+            );
+            })
+        : <p className="text-sm italic text-zinc-500">No rationale available.</p>
+        }
       </div>
 
-      {/* Hint */}
+      {/* Contextual Indicator */}
       {signal === 'Buy' && (
-        <p className="text-xs text-emerald-400 mt-2 font-mono">Price momentum upward detected.</p>
+        <p className="text-xs text-emerald-400 mt-2 font-mono">Upward price movement pattern detected.</p>
       )}
       {(signal === 'Sell' || signal === 'Hold/Sell') && (
-        <p className="text-xs text-rose-400 mt-2 font-mono">Declining momentum. Consider exit.</p>
+        <p className="text-xs text-rose-400 mt-2 font-mono">Downward price movement pattern detected.</p>
       )}
     </FramedBox>
   );
 }
+
 
 
 

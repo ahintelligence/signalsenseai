@@ -11,22 +11,23 @@ export function useSignalLogic() {
   const [loading, setLoading] = useState(false);
   const [histError, setHistError] = useState(null);
   const prevTicker = useRef("");
+  const API_BASE = "http://localhost:8000"; 
 
   const getSignal = async (symbolInput, onComplete) => {
     const symbol = typeof symbolInput === "string" ? symbolInput : ticker;
-
+  
     if (!symbol || typeof symbol !== "string") {
       const err = { error: "Please enter a valid ticker symbol." };
       setResult(err);
       return err;
     }
-
+  
     setLoading(true);
-
+  
     try {
-      const res = await fetch(`/predict/${symbol.toUpperCase()}`);
+      const res = await fetch(`${API_BASE}/predict/${symbol.toUpperCase()}`);
       const text = await res.text();
-
+  
       if (!res.ok) {
         let message = "An unknown error occurred.";
         if (res.status === 404) {
@@ -34,23 +35,23 @@ export function useSignalLogic() {
         } else if (res.status >= 500) {
           message = "Server error. Please try again later.";
         }
-
+  
         const err = { error: message };
         setResult(err);
         return err;
       }
-
+  
       const data = JSON.parse(text);
       setResult(data);
-
+  
       if (!data.error) {
         setHistory((prev) => [...prev, data]);
       }
-
+  
       await fetchHistory(symbol, range);
-
+  
       if (typeof onComplete === "function") onComplete();
-
+  
       return data;
     } catch (err) {
       console.error("Error in getSignal:", err);
@@ -63,16 +64,16 @@ export function useSignalLogic() {
       setLoading(false);
     }
   };
-
+  
   const fetchHistory = async (symbol, selectedRange) => {
     try {
-      const res = await fetch(`/history/${symbol}?range=${selectedRange}`);
+      const res = await fetch(`${API_BASE}/history/${symbol}?range=${selectedRange}`);
       const json = await res.json();
-
+  
       if (!res.ok || !json.history) {
         throw new Error(json?.error || "Failed to load chart history.");
       }
-
+  
       setHistError(null);
       setPriceData(json.history);
     } catch (e) {
@@ -80,6 +81,7 @@ export function useSignalLogic() {
       setPriceData([]);
     }
   };
+  
 
   useEffect(() => {
     if (result && !result.error && result.ticker !== prevTicker.current) {

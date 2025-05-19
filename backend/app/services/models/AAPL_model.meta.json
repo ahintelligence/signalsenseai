@@ -1,0 +1,16 @@
+{
+  "ticker": "AAPL",
+  "timestamp": "2025-04-21T17:24:28.336721",
+  "n_estimators": 200,
+  "max_depth": 6,
+  "learning_rate": 0.05,
+  "test_size": 0.2,
+  "train_samples": 1049,
+  "test_samples": 263,
+  "metrics": {
+    "accuracy": 0.6844106463878327,
+    "precision": 0.7320261437908496,
+    "recall": 0.7272727272727273,
+    "f1_score": 0.7296416938110749
+  }
+}
