@@ -220,7 +220,7 @@ export default function App() {
               Welcome to Lattice by Vantheon
             </h2>
             <p className="text-lg text-zinc-500 dark:text-zinc-400 mt-4">
-              Enter a stock symbol above to get predictions, view historical data,
+              Enter a stock symbol above to view historical data,
               and analyze trends in real-time.
             </p>
             <div className="mt-6 text-zinc-500 dark:text-zinc-300">
